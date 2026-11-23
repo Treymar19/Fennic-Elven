@@ -1,0 +1,863 @@
+=== TAB: Maparonnarn | The Snow Elf Dialect
+  Errrrrrr
+Race names
+Dark elf = Mali’ker / Mali’Hevu (suicidal bravery. Lit. Rooster)
+
+Wood elf = Mali’wen / Wen (Annoying, lit. Grass)
+
+‘Thill =‘Thel / Thel’tarr (Thel, silver, pointless/prideful. Thel’tarr worthless and easily influenced)
+
+Snow elf = Mali’fenn (Elves of snow)
+
+Humans = Vala’ (Lit. Childish)
+
+Orcs = Urk (Lit. Nonsensical babble)
+
+Toga. Bronze elves = Maerul (Lit. Brain rot
+
+Bortu = Dwarves (Lit. Cave dwellers)
+
+Halfings = Igne’aethurr abopelu (Lit. Soul enslaved by fire air (smoke)) / Raelpelu (Lit. Slaves to the love of self)
+
+
+Grammar rules
+Basic sentence structure is Subject, object, verb. Ex, Onve dishes cleaning. This can be expanded upon, experiments are below
+Subjects, verbs and objects are in [], implied words that do not exist are in ()
+
+[Onve] [dishes] should (be) [cleaning]
+
+[Onve] where (is)?
+
+[Onve] very well [dishes] [cleaning]
+
+[Onve] very well [dishes] should be without error [cleaning]
+
+[Onve] open [gate] because [sees], he [laughs]
+
+There are few connecting words like ‘is’ or ‘the’ instead words are joined together with context. Think…. “Why many word, few work” commas and pauses can be extremely important.
+
+The tense of a sentence is entirely defined by the subject and the position of ia in relationship to it. If ia is a prefix the entire statement is past tense, if it is a suffix it is future tense. If absent it is present tense.
+
+Two kanji characters can be joined together to make a new word. The left word is the primary definer, that is modified by the right word. Ex. Ker (night) alyu (good). Keraylu (Good night) Ayluker (Night is good)
+
+When joining Kanji, if there is a sound where the two words join, flanked on either side by the same sound, it, and the character immediately to the right of it is removed. Ex. Soce’weyu becomes Soce’yu
+
+In the case of one sound being surrounded by three, or four of the same sound the procedure is as follows: the parent word keeps all sound, and the offending sounds on the donor word are removed. 
+
+If in the process of removing offending sounds a vowel is removed (a, e, i, o, u) the last proper vowel from the parent word is slotted as close as grammatically allowed to the parent word
+
+You can never go wrong not marrying words. You can go very wrong marrying them
+
+To make a word possessive, the prefix au’ is added. To make a word plural, the suffix ‘len is added.
+
+
+Grammar in detail
+
+A few ground rules for Fennic Elven must first be laid. Fennic Elven’s structure follows as such: Subject, object, verb.
+
+I like mangos becomes ‘I mangos like’
+
+I hate Jennifer becomes ‘I Jennifer hate’
+
+	Fennic elven is unique because of its short, yet diverse kanji-esque dictionary. From it, all expressions commonly used by Mali’fenn flow.
+
+So too in Fennic Elven, lets take the words for I (Eyi) the word for platonic love (Uelei) and a name, Malin. These words would piece together as:
+
+“Eyi Malin uelei.” or “I (platonically) love Malin.”
+
+
+	In Fennic elven, the distinctions between distinct words can be dropped in the case of common words. These are what are regarded as the ‘simple phrases.’ Ex, good morning, how are you, are you wounded. Lets try it in comparison to some simple elven phrases we all know
+
+Karin’ayla (Good day) -----> Karnaylu (Good light.)
+Ker’ayla (Good night)  -----> Keraylu (Good dark.)
+
+	Notice how in Fennic Elven the literal translation changes somewhat. Karn and ker literally translate to light and dark and are used elsewhere. Where elven has a seperate word for darkness unrelated to Ker’ which strictly means night.
+
+	Now lets try get a bit deeper into grammar. There are some words when merged that will have a letter sandwiched between two of the same sounds. Ikurn, the word for iron or warfare,  and indar, relating to study, are combined below. Watch the ‘i’ in the middle of the word, sandwiched between two n’s.
+
+Ikurnindar -----> Ikurndar
+
+	In the case of a word mergence where the words sandwich a letter between two sounds the sound, and the invited sound from the introduced word (the one to the right) are removed.
+
+	An interesting case is that of Fenn (Literally meaning snow, or cold) and anorr (Meaning land). Because of a double n on the end of Fenn, a, and n must still be removed and replaced with the last vowel, e.
+
+Fennanorr -----> Fenneorr
+
+	Some verbs can also have a preparatory syllable or word. ‘Simple statements’ consist of no adjectives or adverbs. Instead they are a group of nouns, sometimes mixed with a verb that express actions.
+
+Ay(‘)ehyubor -----> (Ayred is sleeping. Lit. Ayred bear cave. Ay = Ayred.  Ehyu = Bear. Bor = Cave)
+	
+Let's put it in past and future tense. To do this there are slightly different grammar rules. The prefix Ia denotes past tense for the whole sentence, it's attached to the noun. The suffix of the same ‘Ia is also attached to the noun. Let's try it
+
+Ia’Ayehyubor for past tense
+
+Ay’ia(‘)ehyubor for future tense
+
+In a normal sentence:
+
+Ia’Ayred ehyubor
+
+Ayred’ia ehyubor
+
+
+
+Married Nouns
+Aystra’isvin = Sin, heresy, crime against the holy
+Kuurl’akur = pumpkin
+Trem’metr = Comb, brush
+Sil’ikurn = Sword, war sword
+Sil’madru = Sword, training sword
+Orohe’riko = Eternal victory
+Ikurn’bu’im = Thanium
+Mar’aea = Young mind
+Lesorai’maer = Ancestral wisdom
+Ikurn’mal = Battlements, fortress
+Maer’rivir = Council
+Rivir’rivir = Army
+Rivir'rivir’rivir = Army Group, coalition 
+Aethurr’regu = storm
+Om’feyu = duel 
+Om’feyu’rii = duel to the death, or seperation
+Maer'taar = stubbornness. Goat
+vir’ivae = national glory
+Tu’belier = The Fennic system of hospitality, my house is your house.
+Sil’seleryu = Flamberge type great sword.
+Leru’tu = Library 
+Khel’mali = An elf that wanders, an unfamiliar elf.
+Bair’
+
+Married Verbs
+Tr’ae = to cause confusion
+Aethurr’dur = to breathe
+Neh’fānri = to nod no
+Ti’fānri = to nod yes
+Ti-neh= Yeah Nah
+Tiaoru’aethurr = To sigh in sadness
+Ehyu’bor = To sleep
+Tr’maer’rivir = to take council 
+Relisu’doer = to choose from a set of options
+Maer'doer = to select wisdom
+Doer’maer = to choose with wisdom
+Adur’pyorai = to desire to a be a prince
+Tiarou’tultul = to spend a small amount
+Marlae’kanel = to greet, to invite inside
+Aū’rii = to demand 
+Ivae’vhai = to moving to protect something
+Yala’adar = to stand up 
+Tr’surra = To see
+Tr’odr = To change
+Vhai’idar = to raise, to bring up for defense
+Adverbs
+Uel = quickly, specifically relating to moving.
+Marsyl’ahe = Retired
+
+Adjectives
+Wal’aylu = Bored
+Marsyl’ahe = Retired
+Pronouns
+
+I/me = Kai
+
+Mine/my = Aukai
+
+You = Nay
+
+Yours = Aunay
+
+Him/her/it/they = Hae
+
+His/hers/its/theirs = auhae
+
+We/Us = Yir	
+
+Our/ours = auyir
+
+It, that, this (Nonliving, items) = Riir
+
+Greetings
+Wyrvun il’aylu (Wyrvun is good)
+
+Karnaylu (Good light)
+
+Keraylu (Good dark)
+
+
+
+Farewells
+
+Vhaiaylu (Good travels)
+
+Nay’ia Feylir’yie sanir = Throw yourself off a cliff
+
+Wyrvun il’aylu (Wyrvun is good)
+
+
+Common sayings
+
+Vhalu (Thanks, you're welcome)
+
+au’Wyrvun Sural’bair (A humble servant of Wyrvun, Wyrvun’s humble servant)
+
+Lun (Sorry)
+
+Kai Lun (Forgive me)
+
+Kuruae’biayu (Children, lit. Groin goblins)
+
+Au’ilru (child, lit. My creation)
+
+Nay ahtho tr’nuryu (Nice to meet you)
+
+Ia’nay Adrutael (Name) (have you seen (the) _____)
+
+Kai’ia Eerulu (item) (Give me the _____)
+
+Fol’adur! (At least try)
+
+Neh voln (Generally used to express displeasure, bad luck. Just a way of saying ‘no dice’ or ‘no sense!’)
+
+Keraylu (Good night)
+
+Karnaylu (Good day)
+
+Fenn tr’adar ( A coincidence)
+
+Kace’ai (Expression of exhaustion, bewilderment ‘ugh’.)
+
+Family structure
+
+Laer’lar, wife.
+
+Laer'mar, husband.
+
+Malerru, parents, aunts, uncles.
+
+Lesorai, grandparents.
+
+Aunn, siblings or cousin.
+
+Aur, children of your siblings or cousin, or their grandchildren.
+
+Au’ilru, your children, and grandchildren.
+
+
+
+
+Counting:
+
+Fennic counting is split into two categories, those who use a more traditional method in a twelve base system, and those who use a ten base system.
+
+The twelve base system counts the finger bones in one finger, using the thumb. Then counts orders of twelve, on the opposite hand, starting from the thumb to the pinky. 12, 24, 36, 48, 60. With each individual number up to 60 having it's own unique word. From there it is counted as “60 and 20. Alternatively one could say “Ten 60s.”
+
+This system was once the basis for all counting, in reality, common (that is English) holds a 24 hour day, split into 12 hour sections as a result of this system. This system of counting, now extinct and forgotten also is the reason that the “teens” in spoken common being only after twelve.
+
+The old system, though known of, is extinct and only exists as flavor lore.
+
+The more popular system is the common system, that is the ten base. 10, 20, 30, etc are considered round numbers. However this system does remain influenced by the older style of counting; each word up to 99 in the modern system owns its own unique word, with no specific pattern. However unlike the old system, it has a written equal, and is organized into groups of two numbers. The resulting effect is numbers that in common would be written as thus: 100,000,000; would instead be written as 1,00,00,00,00. Each pair of two letters has an associated suffix.
+
+In common, spoken: “One hundred million”
+
+In Fennic, spoken: “Om’karr” as an example,  “Om’karr, nil’elam, nil’ilk, nil’firr, nil.”
+1,             00,         00,    00,      00.
+
+Nul = 0
+Om = 1
+Ir = 2
+Oee = 3
+Pal = 4
+Fei = 5
+Fal = 6
+Gar = 7
+Nesh = 8
+Kai = 9
+Urm = 10
+Tue = 11
+Jo = 12
+Jai = 13
+Turm = 14
+Jaer = 15 
+Cai = 16
+Pon = 17
+Tun = 18
+Una= 19
+Urru = 20
+Hab = 21
+Fir = 22
+Guy = 23
+Pasu = 24
+Barta = 25
+Perdi = 26
+Curn = 27
+Kue = 28
+Haer = 29
+Marsyl = 30
+Teru = 31
+Vie = 32
+Sho = 33
+Aer = 34
+Ueal = 35
+Marl = 36
+Paren = 37
+Aylr = 38
+Layl = 39
+Aseru = 40
+Cho = 41
+Juol = 42
+Rela = 43
+Cres = 44
+Soue = 45
+Uler = 46
+Col = 47
+Caar = 48
+Ithar = 49
+Pel = 50
+Chalm = 51
+Wyr = 52
+Tha = 53
+Vilue = 54
+Dal = 55
+Farel = 56
+Halei = 57
+Theer = 58
+Sot = 59
+Slar = 60
+Bela = 61
+Selar = 62
+Calar = 63
+Tes = 64
+Gaca = 65
+Fael = 66
+Porel = 67
+Oer = 68
+Chol = 69
+Wir = 70
+Silaan = 71
+Cero = 72
+Seir = 73
+Vil = 74
+Jela = 75
+Jilaa = 76
+Daram = 77
+Herarr = 78
+Itarr = 79
+Ira = 80
+Keva = 81
+Doltr = 82
+Cir = 83
+Sio = 84
+Lelar = 85
+Nouln = 86
+Aela = 87
+Yoel = 88
+Uil = 89
+Rer = 90
+Terru = 91
+Garla = 92
+Samp= 93
+Naral = 94
+Uiral = 95
+Versi = 96
+Jal = 97
+Kio = 98
+Cep = 99
+
+‘firr = --,00
+‘ilk = --,00,00
+‘elam = --,00,00,00
+‘karr = --,00,00,00,00
+
+These are common denominations, I reason no further is needed but more can be added upon your request.
+Insults:
+
+Ageaiul = maggot
+
+Kai’ia soryu’sorae ageia nay. = I'm going to slowly crush you like a bug.
+
+Sewahe = Someone who appears pleasant, but is not. Lit. Bitter stew
+
+Gohalir = An idiot, one who acts without thinking. (Lit. One who tries to steal the void)not 
+
+Silfol = The equal to saying “Not the sharpest tool in the shed” (Lit. Dull sword)
+
+Vuru’su = Unreliable, dead weight. (Lit. Cut knot)
+
+
+
+Blessings
+
+Tarnay = Don't die
+
+Aurii = Stay safe (More affection version of Tarnay)
+
+Wyrvunaylu, Yir’ivae, Nayau anorr’ivae, Yirau celu’ivae, Nay ivae’yir. Yirau haelr’maer Malen. = Wyrvun is great, protect us, protect your land, protect our city, (it is) you we honor. Speak wisdom to our leaders.
+
+Nay suek = You are kind/sweet. (Lit. You are sugar)
+
+Nay soryu karu = Age slowly, or age gracefully.
+
+
+Prefix/Suffix
+‘rii = Suffix meaning extreme, lit. Very
+‘tir = Suffix meaning child of. An example of citing heritage = “Onve’tir Lyceia. Lyecia’tir Ayred. Ayred'tir Tulu. Tulu’tir Emaelia. Emaelia’tir Nessa. Nessa'tir Celennor Drakon.”
+‘ia’ = prefix or suffix denoting future or past tense.
+
+au’ = prefix denoting property of the noun. Can only be used in present tense. Attached to the object if not present tense with the same rules as ‘ia’.
+
+tr’ = A prefix added to any noun that makes it an verb, literally ‘action’ or ‘to’
+
+‘len = suffix denoting pluralization.
+
+
+Words
+
+
+
+
+
+
+Aal = Now
+Adar = down, backwards
+Adur = To desire, to want, consent.
+Aea = Growth/Grow
+Aehlir = Discipline, obey, selfless
+Ael= soul
+Aelar = Diamond
+Aelir = Skill
+Aelnar = Sea breeze
+Aelro = Loud
+Aeltyr = Shock, surprise.
+Aelur = Beer
+Aengal = Aengul
+Aeru = Otter
+Aesir = Challenge, difficult, test
+Aethuur = Air
+Aga = Neck
+Ageai = Bug
+Ahcu = Boat
+Ahe = Bitter/poison/expired
+Ahtho = Nice, wonderful.
+aillerun = Loved one (an affectionate term for family) ? -pintape
+Ailyu = Love, eros
+Akal = Gold
+Akaln = Bribe, corruption (sinful gold)
+Akur = Red, orange
+Alersu = Ancient, old, aged
+Ali = Tax, fee, fine
+Alir = Steal
+Allirm = Hilt of a sword
+Althar = Sickness, affliction,
+Amo = Wood, tree
+Aneri = Hope, a reason to hope
+Anim = Mechanical
+Anorr = Land/ land of
+Anur = Path, road
+Archon = Family leader
+Arja = work
+Asral = Promise, sworn
+Ather = Knee
+Audr = Hunt/Gather/Collect
+Aulra = Plough
+Aun = Life
+Aunn = Any blood sibling, brother, sister or any cousin younger, or the same age
+Aur = Child of your cousin, siblings children.
+Aurha = Survive, keep life
+Aurkr = To need
+Auylu = Submissive / Lit. Coward
+Au’ = owns, property, of
+Ayirr = Distance
+Aylu = A lot / Big. Good
+Ayras = Shadow
+Aystra = Evil/Criminal
+Azradrai = Dragon, Azdrazi
+Baern = Clay
+Bair = Quiet
+Balara = name
+Balarso = Pantry, food storage.
+Barbu = Coal 
+Barsar = Thunder, crack, the fire of a cannon.
+Belier = showing, to display
+Belin = Follow, track,
+Berias = nearby, short travel
+Berir = Crawl
+Biayu = Groin
+Bluyu = Flower, beauty.
+Bor = Cave
+Burim = Cold
+Burr = Bow
+Caarie = Injury
+Caesu = Pleasant Sound / Lit. Laughter . . An equal to “Aha!”
+Caruur = Cloth from a plant, cotton.
+Cearar = Vegetable
+Cei = Star
+Celaen = One who kicks
+Celu = City / Place of settlement
+Cerferux = Cross (As in crucifix)
+Cetru = Copper
+Chiraeu = wing
+Coflae = Coffee
+Cur = A cup
+Curru = Strong
+Daemir = Daemon
+Daemon = Daemon
+Dalu = Whole of the body
+Dar = Arm
+Deon = Age
+Dorotar = Physical purity
+Doso = Hen / Fear.
+Dra = Measured wrath, focused anger.
+Draam = True, truth
+Drae = “. . . What?” Lit. Confusion
+Draemae = Blanket
+Drakkirr = Dragons, the Draconic
+Draley = Wet wood
+Dranekir = Wyverns
+Drimar= Guide, to be a person of instruction in charge.
+Drui = Druid
+Durae = Shield
+Eal = Any vehicle.
+Eerulu = Give
+Ehyu = Bear
+Eilae = Emerald
+Eirr = Log
+Elkar = Monsters, horrific constructs,
+Eloir = Persistence 
+Emae = choose, elect.
+Emel= Joke, jest, humor
+Esalar = Back (Physical back)
+Esaran = To be rejuvenated, refreshed.
+Eslar = Frost
+Esti = trust
+Ethar = Immobility, stiffness, paralized
+Eurrue = Mirror, reflection, twin.
+Everan = A humble shadow
+Fae/Fay = The Fay, mischief, mischievous
+Faenir = Foreshadowing a critical event, calm before the storm, prophesy 
+Falei = Alchemy
+Fel = Love, philia.
+Felar = To eat, to drink
+Femer = Listen, hear.
+Fenn =  Snow
+Feslar = Moderate frostbite, injuries of exposure, stage 2
+Feteal = Achieved purity, fennic purity
+Fetir = Solid ice
+Feylir = Mountain
+Feyu = Fight, fighting.
+Fol = Dull / Purposeless / Meaningless
+Fsh = Fish
+Fānri = Head
+Gayu = Cow.
+Gelaru = Traditional tent, yurt
+Goha = Create from nothing, the void.
+Haelr = Speech, talking
+Harsel = Rabbit
+Heliu = Sun
+Helwhyr = Stamina 
+Herreu = after
+Hevu = Rooster / Suicidal Bravery / Dark Elf
+Heyan = A request for clarification. Roughly“Say again”
+Hilae = Custodian, keeper, one who holds
+Ia = Denoting present or past tense.
+Iadr = Forward, up
+Iakir = Barrel for storage
+Ialar = Sign, physical sign post.
+Iar = All foodwards
+Ibaar = White
+Ibaarakii = Light blue
+Ibheir - wind
+Iblanu = Unhonorable
+Iblu = Corruption / Adversary / Literally Iblees
+Igne = Fire / Warm
+Ikael = Animal
+Ikar = Strike, hit, can also mean to forge.
+Ikurn = Iron/warfare
+Il = Left
+Ilas = Dead
+Ile = Compare, can be used as ‘what’ in a circumstance of ‘what spite.’ A word denoting comparison.
+Ilitar = Equipment.
+Illar = Sharp, able to cut
+Illiar = Pick up the can
+Ilo = Bone 
+Ilru = Create, raise
+Ilsar = Be free, release
+Ilse = complete, fullness
+Ilthae = Precise, accurate, exact.
+Ilu = North
+Ilyar = Device, tool, item (Ex. Time’device = clock)
+Indar = Study, profession
+Irulil = Meat
+Iskar = Heavy frostbite, stage 3, 
+Islir = Very light frostbite, numb finger, stage 1 or pre stage 1
+Isol = Impossible, physically incapable, absurd.
+Isvilcil = Martyr
+Isvin = Mali’fenn afterlife / Holy
+Ita = Feather, dexterous
+Ivae = Protect, honor.
+Ivdilin = Companion
+Jaeia = Chair
+Jalir = ash
+Jara = Arrow, bolt.
+Jauii = Body of a blade
+Jiusae = Savior
+Jothae = Cross (As in crossing a river)
+Juriao = Chest, stomach, torso
+Kace = Sound / Unpleasant noise
+Kael = Curved
+Kaesa = requirement, need, cost 
+Kahalar = Choke, to be strangled
+Kai = I
+Kalar = Ability
+Kalfir = Shin
+Kali = Debt
+Kalina = A fresh blanket of snow after a blizard
+Kalsa = To guard, a sentry.
+Kanel = Inside, within, contain, sometimes upon
+Kanelu = Rope
+Kanir = In front
+Karn = Light, day
+Karthel = Northern Traveler, Tundra Wanderer
+Karu = Age
+Karusu = Canyon
+Kas = East
+Kau = Forget, dismiss. / Go away
+Kelai = Unstoppable force, thundersnow
+Kelar = Weakness, failure
+Kelesu = Rabid, foaming at the mouth.
+Keisa = To build knowledge, to discover new things, to study.
+Kel’ = Prefix meaning ‘in comparison to’ denoting it as less preferable
+Ker = Dark, night
+Ketchrr = Kitchen
+Keyrur = Any alcoholic drink, lit. alcohol
+Khel = Wander, lost
+Khifil = Plan, goal
+Khola = Ghoul, unthinking undead
+Kilthae = Death by exposure to cold, death that results from frostbite.
+Ki’iu = ball, sphere
+Klao = Backthink
+Klar = Simple, easy
+Kur = Black
+Kuril = Person
+Kuruae = Goblin / Small, annoying person
+Kurue = Ink
+Kuurl = Melon
+Laer = Agree, equal to, equal
+Lalei = Frame
+Lar = Woman
+Larehbaern = Brick, fired clay (rock clay)
+Leras = Bastard
+Leri = Paper, letter
+Leribu = Anvil, unyielding, unbending
+Lerseu = Leather
+Leru = Book
+Leyu = Lion / leader
+Liaesar = Lapis
+Liirn = Yellow
+Lin = Music / Song
+Lisuu = pray
+Ller= Friend, something or someone you enjoy
+Loreiir = Spiritual purity
+Lun = Sorry, mercy
+Madru = Iron/civilian/forge iron
+Maer = Head / wisdom / lit. Thinking
+Maesae = History
+Magi =  Magic
+Mal = Wall, male.
+Malen = Boss, ruler, manager
+Malerru= Father, mother, aunts and uncles
+Malīn = Malin
+Maparonnarn = The Fennic system of speaking, the Fennic alphabet.
+Mar = Man
+Marl = Hammer
+Marlae = Bring together, mix.
+Marna = Wealth, something of immense value
+Marsyl = Enlistment, service, expectation, purpose
+Masei = Autonomy, accountability to the self.
+Meir = Why
+Metil = Time, moon
+Metir = Bird / Mystery
+Metr = Unit, sometimes stick
+Meylii = Javelin
+Meylr = spear
+Mina = Circle, mina
+Mir = And
+Miral = Straight
+Miu = Paint
+Moorn = Pure, innocent
+Mori = Unredeemable evil / highest evil
+Morolu = Love, agape, respect.
+Murr = Pike, stack
+Naeru = Field, farmable land, farm
+Nales = Pancake
+Narmi = Door
+Nedia = Illnesses, to be ill.
+Neh = No
+Nelar = Perfect, flawless, without issue
+Nesu = Axe
+Nilu = Knowledge / Understanding
+Nirka = Behind
+Nuryu = Any gathering or meeting
+Odu = Change, modify.
+Oela = Issue, problem, 
+Oelm = Branch
+Oelra = Sky, weather
+Oetah = Long
+Oler = Slushy ice, broken up ice.
+Olie = Pinch
+Oltha = South
+Onarsir = Daemonsteel
+Oraeu = street, walkway.
+Orohe = Success, victory, glory
+Ourier = Water
+Ourierstiyr = Beaver
+Paay = Cut
+Palor = Method, type
+Panvu = Suffering, emotional pain
+Pas = All types of bread
+Pelri = Cat
+Pelu = Slave, enslaved
+Per = Horse
+Peru = Leg
+Petu = Sour
+Piralfal = Within courtship, the one who inspects possible suitors.
+Poralu = Rooted vegetable
+Potu = Obvious, transparent / Glass. Easy.
+Pyorai = Prince
+Rael = Love, self
+Raeli = Medic, herb, healer
+Rakii = Blue
+Ral= Opposite
+Ralar = A box for storage
+Ras = Curious
+Regu = Anger.
+Relisu = Outcome, amount
+Ri = Right
+Rianir = Hole
+Riko = Unending, eternal
+Rivir = Squadron, group.
+Rolur = Ideas, concepts,
+Roru = Round
+Rurl = Question, do not understand, problem
+Ruvel = Blood red, ruby.
+Sae = Increase, grow, spread
+Saele = Budding flower
+Sai = Height
+Sail = Speak, to make a noise.
+Sanir = Throw
+Sar = Season
+Sareu = Polearm
+Sarr = Final, last
+Sayn = Cut
+Selar = Spirits, alcohol
+Seleryu = Snake
+Selu = Child, small one, not related
+Seras = Turn, to face
+Seurr = Skin
+Sew = Soup, stew
+Shrer = Tongue
+Siedam = Begin to fight, battle is joined, I'm ready to fight
+Siest = trust, can also mean foundation.
+Sil = Sword
+Skyth = Scythe
+Soce = Fruit
+Soli = Alone, isolated / Lit. Ghost / Unseen / Stealth
+Sorae = Kill
+Soryr = Representative
+Soryu = Sloth, slow, slowly
+Stae = Polearm, glaive.
+Staelurr = Lead, to be in charge
+Stau = Nuts, almonds, etc
+Stiyr = pause, stop.
+Suek = Sweet, palatable / Pleasant / Lit. Sugar
+Surae = Sentinel, Commander
+Sural = Servant
+Surluae = Law, order, structure
+Suro = Clothing.
+Surra = Sight, eye
+Suru = Torture, prison (Sail’suru = politics)
+Ta = as a result of, because.
+Taal = A young soldier, or greenhorn.
+Tael = Touch
+Taerlu = payment
+Tal = Stone/Cut stone.
+Talu = Pig.
+Tar = Death, die
+Tariu = Loose rocks, gravel to cobblestone.
+Tarna = Stick
+Tarr = Stupid, sheepish, foolish / Lit. sheep
+Tas = West
+Tayn = Blood / Family
+Tayr = Green
+Tel = Excess, extra
+Teleth = Gossip
+Tersu = Leave, exit, go out
+Tetra = Straight/Line
+Thal = Air vapor seen while speaking in cold environments, mist, breath,
+Thar = Raw, uncooked / Untrained / Unrefined / Trainee Lit. Ore
+Thel = Without use / Blinding pride. / Mali’thill / Lit. Silver
+Thuia= Non edible plant
+Thuso = Pain, harm, damage.
+Ti = Yes
+Tiaoru = Sad. / A small amount / Small /
+Tirrar = Attack
+Ton = Cloth (cotton)
+Tor = Foot
+Traelr = Large stick, sometimes staff. / Shaftcook
+Trath = Numbers
+Trem = Hair, wool.
+Tu  = Home, house
+Tultul = Trade, exchange. Can also mean price
+Tus = unfarmable land
+Tusilru = Waste, excrements (unusable creation)
+Tuyr = garlic
+Uel = Fast, speed
+Uelam = The feeling of nausea
+Uelar = Wine
+Uelear = burn
+Uelei = Moon / Platonic love
+Uelie = Pressure point
+Ueliir = To allow something to happen
+Uelthir = Heir, successor, elected
+Uilm = Edge of a blade
+Ul = Rot, decay. / Bad Smell
+Uram = Empty.
+ Urel = Emotion, feeling
+Urisa= Remember, recall, memory
+Urk = nonsense/crazy, babble, Orc
+Ursalir = Middle/Center
+Uval = Powder
+Vaeli = Berry
+Vala = Childish, silly, Human
+Valaera = Cooked, prepared food
+Vali = Liquid.
+Vearu = Tooth
+Velryae = Cry, tears, mourning
+Veltha = Love, stroge, love for a family member.
+Vespera = A guiding star
+Vesya = Peace, quietude
+Veyi = Armor (Veyi’fanri = helmet) Lit. Sarcophagus
+Vhai = Travel/move, lets go
+Vier = Hand / Grab
+Vir = People, nation
+Virras = Vigilant, religious concept, can also mean priest or paragon.
+Volit = Unstable, volatile / Volatile / Lit. Explosive /
+Voln = Cunning, crafty / Fox
+Von = Happiness / Satisfaction / Happy
+Vor = Open, clear.
+Vuru = Knot, tied.
+Wael = Heal, repair.
+Wal = Wait, do nothing, standby
+Wen = Grass / Annoying / Wood Elf
+Weyu = Egg
+Wihlae = Lie
+Wihn = Grain, wheat
+Wurru = Dry wood
+Wy = appendage, see ancient elven
+Wyrvun = Mali’fenn diety
+Yaal = Stand, see verbs.
+Yie = Edge, end of. I
+Yoeir = Wrist 
+Yuilae = Fuller of a blade
+ ‘Lalm = suffix, meaning to wear
+Ilen = above
+Telar = important
+Asle = Large,
+Keli 

@@ -1,0 +1,823 @@
+## Seed words
+acal: valuable, golden, cursed
+adil: needy, desiring, wanton
+adont: requesting, awaiting
+adri: evil, immoral, hate
+aelor: abomination, faithless, demon
+aengul: Aengul, race of semi-divine beings affiliated with light
+aetah: age
+aeth: aether
+aher: to bless
+akal: valuable, golden
+allim: sin
+ana: to be
+andria: hope
+anny: dance
+asul: sun
+ata: ugly, tainted
+athri: serpent, snake
+ailer: wizard, conjurer, heretic
+alor: salt
+ame: forest
+annil: guiding
+ante: last
+arche: infrequent, sporadic, rare
+arhil: just, fair
+asimulum: sanctuary, glade, asylum
+aver: to wander, to roam
+avento: to follow
+ayal: yellow
+ayil: to like (a person or thing)
+ayl: to like (a thing)
+ayla: good
+banih: six
+barbu: dark, black, hedgehog
+berr: bow
+belou: pink
+bida: to drink
+bilok: to create, to make
+bortu: dwarf
+caele: sky
+celia: star
+ceru: strong, mighty
+chae: tea
+chirr: wolf
+chil: descend
+chul: to must
+cihi: city
+cinh: to stop, to cease
+ciw: to sleep
+crua: hurting, suffering
+daemon: Daemon, race of semi-divines affiliated with smoke and fire
+dagr: war
+dant: to fall, to drop
+diraar: guard, sentinel
+dion: long
+drui: druid
+draoi: evil druid, warlock, sorcerer
+ehier: to find
+enaer: guest
+ento: next
+ern: to can, to be able to
+estel: trust
+esun: eight
+eth: end, to end, to die
+evar: to protect, preserve
+ey: use, application
+faesu: horse
+fer: tool
+fenn: ice
+feta: cold
+fih: to eat, to feed
+fin: region
+fiyem: reborn, renewed, revitalized
+fyu: full
+ha: it
+hae: her
+hael: three
+haelun: mother
+haesiea: to forget
+haler: to promise, to pledge
+harriel: square
+heial: circle, council
+hier: near
+hileia: peace
+hiuw: to twitch, to move
+hiyl: health
+ibar: white, owl
+igne: flame, fire
+irham: industry
+iheiuh: wind
+ihn: stick
+ikur: wrought, cold, gray
+ikru: foolish
+iller: to give, to grant
+ilum: glowing
+inder: to read, study, memorize
+indor: book
+irrin: glass
+ito: to, here, within
+iyat: thought
+iylanh: to place
+kae: me
+kalem: Malin's year
+kaliri: event, party
+karim: fortday
+karin: sunrise, day
+kath: feud
+ker: dark, sunset, night
+khel: darkness
+kina: murdered, killed, death
+krafeh: corpse
+krey: single
+kulin: five
+lae: him
+laier: seven
+lar: sturdy, steadfast
+lari: female
+lareh: boulder, mountain, rock
+larebil: anvil
+larueth: netherrack
+laureh: chosen, favored, noble
+laurir: noble
+len: song
+lenaern: inn
+lenniel: melody
+lent: to grow
+lenti: growth, moss
+lentos: brown
+leyu: graceful, beautiful
+liewyn: smile
+lle: kindness, good intention
+lie: dishonest, untrue, false, deceitful
+llir: friend
+lin: home, place
+llum: sorrowful, mourning
+llun: sorry
+llyt: aggressive, intimidating
+lom: to fragment, to splinter
+lomi: fragment, splinter, pebble
+lomal: flint
+luci: grape
+lu: prison, cage, bind, dungeon, restriction
+luth: enchant, spell
+lye: we
+lyu: silent
+mabidar: to suck
+maehr: wisdom, knowledge
+maelu: to know
+magara: cave, cavern
+mahnih: wall
+mal: male
+mali: elf, elven
+malin: Father of Elves, king
+masuleh: anvil
+medi: helping, helpful
+metta: bird
+meracahe: balance
+miar: lava
+mira: warm
+miruel: red
+moiel: nine
+mordu: titan
+mya: mercy
+myumier: to carry, to bring
+na: to
+nae: you
+naeri: devout one, cleric
+nam: if
+narn: to walk, travel through
+ne: no
+nealu: to teach
+niut: two
+nor: land
+o: why
+oem: one
+ohn: like (similar to)
+oment: to meet
+okar: to safeguard
+orrar: to hunt
+othelu: sharp
+pario: to fail
+parir: harbinger
+pern: potato
+parsaer: to conceive, to kindle
+perith: to remember
+prenu: take
+puer: to write, to draw, to scribble
+puerith: to write down, to record
+res: wayward, unpredictable, capricious
+rhil: vengeful, scorned
+riv: claw
+riurn: swamp
+raell: carrot, root, herb
+rost: rain
+san: word, news
+saneyr: to debate, discuss
+salum: to feel, to sense
+seth: void
+sew: soup, stew
+siimah: tower
+sil: sword
+siol: lone, lonely
+sirame: honor
+siru: mushroom
+siyuer: to play
+sohae: devout one, cleric
+suika: sugar
+sul: light
+sulier: to see
+sulii: eye
+synal: power
+taeleh: mind
+taelu: to learn
+tahorran: hawk
+tahu: high
+tahn: peak, height
+talar: horizon
+taliyna: body, living being
+taliiyher: to bleed
+taliyu: secret
+talonnii: family, bloodline
+tarem: Elven week
+tayna: life
+taynei: green
+taynuel: vitality, energetic, alive
+telu: ten
+tenna: until
+tennallar: ocean
+terh: to grind, process, churn
+tillun: forgive
+tinuviel: nightingale
+tir'id: risk, danger
+tiuth: triangle
+thrur: explosive, volatile
+thill: pure, refined, delicate
+thul: raw, unrefined, brusque
+ti: yes
+tilr: submission, servitude
+tir: law
+tos: desert, wasteland, barren ground
+tufer: to construct, to prop
+tur: bone
+turr: sheep
+tuva: everything, all
+tuveh: wool, something soft
+ueth: nether
+uhier: to seek
+ulln: rot, withering
+unya: then
+uradh: to scowl
+uriar: to shout
+urth: to rule
+uruk: orc
+ut: because
+uvul: powder
+vaedrar: to melt
+vailu: four
+valah: human
+vallei: water
+valein: milk
+vallel: blue
+vallum: crying, grieving
+valm: art
+valmuel: purple
+van: to go, to fare
+velulaei: moon
+vihai: whisper
+vilut: cow
+vira: vigilant, mournful
+vularale: bat
+vull: to deceive, to trick
+waleh: to heal
+wehn: grass, grain
+welier: to listen, to hear
+wy: appendage
+wyl: while
+wyn: happy
+y: upon
+yallr: to live
+yuln: gemstone
+## Compound words
+acalin: shop
+acaln: gold
+adont'ahern: please
+ael'tireth: misjudgement
+ael'tirether: to misjudge
+aetahu: aged, old
+ahavento: to worship
+ahavento'lin: temple, church, shrine
+aheral'leh: highelven
+ahern: blessing
+ahernan: thank you
+akaleh: wealth, money, valuables
+akaleh'ii: worth
+akaln: gold
+alliman: sinful
+allimar: to sin
+allimir: sinner
+alor'bidan: brine
+aloronn: salmon, fish
+aloru: salty, saline
+ame'leh: woodelven
+ame'lie: orchard, food forest
+ame'nor: woodland
+amenor: wilderness
+ame'sae: forestry
+amesair: forester
+amonn: wood
+anah'wy: head
+analn: the past
+analnu: past, previous
+aneh'wy: right hand
+anih'wy: left hand
+anoh'wy: foot
+anoh'wyan: feet
+anuh'wy: hand
+anuh'wyan: hands
+anniler: to guide, direct
+annyer: to dance
+asulu: sunny, sunlit
+avern: wanderer, confused person
+ayilu: liked, likable
+ayler: to improve, to make better
+beloun: pig
+berrir: archer
+bida'lin: tavern
+bidan: drink, beverage, liquid
+bilokonn: to fornicate
+bilok'sair: craftsman
+bortuler: to mine, to delve
+bortu'lin: mineshaft
+ceruer: to strengthen, to fortify
+ceru'lin: stronghold, fort
+cerun: strength
+chiler: to descend
+chil'onn: descendant
+chirr'ii: puppy, cub, whelp
+chirr'lin: den, lair
+ciwn: sleep
+ciwu: sleepy
+dagre: to fight
+dagre'sae: fighting, war
+dionn: length
+dioner: to lengthen
+dionne: short
+dionner: to shorten
+dionsil: longsword
+dionnesil: shortsword
+div'andria: hopeless
+div'ciwn: sleepless
+div'eth: endless
+div'ey: useless
+div'lin: homeless
+div'sanern: speechless
+div'sirame: honourless
+div'tayna: lifeless, dead
+div'tir: lawless
+div'tur: boneless, spineless
+divu: empty
+divun: emptiness
+elanah: north
+elanoh: south
+elanih: east
+elaneh: west
+el'santalian: the alphabet
+estelle: to trust
+esun'wy: octopus
+evarir: protector
+evaru: protected, preserved
+eyr: to use, to apply
+eyrir: user
+faesu'lin: stable
+fenn'leh: snowelven
+fennu: icy
+fer'ame: axe
+fer'bilok: hammer
+fer'nor: shovel
+fer'norsae: hoe
+fer'puer: quill, pen
+fer'sul: torch
+fer'thuln: pickaxe
+fin'urthir: duke
+fisaen: seed
+halern: promise, pledge, oath
+haeluner: to mother, to care for
+haelunor: motherland
+haelunu: motherly
+heialu: round
+heialyem: to return, to circle back
+hiuwu: twitchy
+hiyl'lin: clinic, hospital
+hiylne: sickness
+hiylneu: sickly
+hiyl'sair: medic, doctor
+hiylu: healthy, spirited
+hiylun: healthiness
+igne'ame: firewood, fuel
+igner: to burn
+ignerir: burner
+ignern: a burn, a brand
+igne'sae: destruction, war
+igneu: firey
+iheiuhii: voice, breath
+iheiuh'tehrlin: windmill
+iheiuhu: windy
+ihnsil: spear, lance
+ihnsilir: spearman, lancer
+iinu: young
+ikurn: iron
+il'celian: constellation, starsign
+ilumr: to glow
+indor'lin: library
+inder'lin: school, college, university
+irham'lin: workshop
+itone: you're welcome
+iyath: to think
+iyat'sae: philosophy
+iyatsair: philosopher
+iyl'karin: today
+kather: to feud
+kathir: foe
+karin'ante: yesterday
+karin'ento: tomorrow
+ker'leh: darkelven
+krafeh'lin: grave, tomb
+krafeh'nor: graveyard, cemetary
+kreyn: pair
+larehu: rocky, mountainous
+larehne: valley
+lari'maronn: female cousin
+lari'onn: sister
+lenir: singer, musician
+lentiu: mossy
+lensair: bard, minstrel, troubadour
+liear: to lie
+lien: lie
+liewynh: to smile
+liewyn'saer: to entertain, to amuse
+linan'sae: town
+lin'urthir: baron
+lliran: friends
+lliru: friendly
+llirer: to befriend
+llum'saer: to sadden
+llyth: to strike
+luan: prisons, cages, dungeons
+lucionn: sour
+lucionn'bidan: vinegar
+luci'sair: vintner, winemaker
+luci'tehral: wine
+luer: to imprison, to cage, to bind
+luerir: captor
+luerlent: flowerpot
+luir: prisoner, captive
+luir'sair: serf, slave, thrall
+luther: to enchant
+luthien: enchanting
+luthu: enchanted
+lye'leh: public
+lyeleh'lin: republic
+lye'synal: democracy
+lye'synalir: democrat
+lye'urthir: demagogue
+lyuer: to silence
+lyun: silence
+lyu'saer: to censor
+maceru: almighty
+madion: longer
+madionne: shorter
+maetahu: older, parent
+malaurir: prince
+maleyuln: diamond
+mali'aheral: high elf
+mali'ame: wood elf
+maliear: to betray
+malieir: traitor
+maliewynh: to laugh
+mali'fenn: snow elf
+mali'ker: dark elf
+malii'lari: daughter
+malii'larionn: niece
+malii'mal: son
+malii'malonn: nephew
+mal'maronn: male cousin
+maln: father
+malner: to father
+mal'onn: brother
+marayla: perfect
+maraylan: perfection
+maraylanir: paragon
+marayler: to perfect
+mar'haelun: grandmother
+marlari'onn: aunt
+marmadion: longest
+marmadionne: shortest
+marmaetahu: oldest
+mar'maln: grandfather
+marmal'onn: uncle
+marn: more
+marenne: less
+marurthir: tyrant
+masair: master
+masilir: knight
+masuleh'sair: blacksmith, smith
+marmatelu: thousand
+matelu: hundred
+mataliame: log
+mayl: love
+mayler: to love
+mayil: love (for a person)
+maylu: beloved, loved
+mayilun: beloved, loved one
+mawyn: bliss
+mawynu: blissfully
+metta'lin: aviary, birdhouse
+miar'sae: griefing, harming, spiting
+mirueler: to redden, to blush
+myumierir: carrier, container
+naeluir: teacher
+naelun: teaching, lesson
+nalin: homeward
+narn'acaele: fly
+narneth: destination, goal
+narn'faesu: horsetravel
+narn'tennallar: sail
+narn'vallei: swim
+nen: without, lacking
+nen'lu: free, without restriction
+nen'luan: limitless
+nen'lun: freedom, liberty
+nenlu'norsair: freeholder, freeman, tenant
+ne'sirame: dishonour
+ne'sirameu: dishonourable
+nor'sae: farming
+nor'saer: to farm
+norsae'lin: farmstead
+norsae'nor: farmland
+nor'sair: farmer
+nor'puerith: geography
+norurth: realm, country
+norturth'lye: countrymen
+okarn: oasis
+onner: to birth, to give birth
+onnerir: parent
+orrarir: hunter
+orrarn: hunt
+par'karinah: dawn
+par'karinante: ereyesterday
+par'ker: dusk
+par'narneth: predestination
+raell'tehral: salve, potion
+raellu: herbal
+res'karinento: overmorrow
+resne: predictable, consistent
+resnen: prediction
+resner: to predict
+resvuleth: catastrophe
+reth: fate
+rhiln: vengeance, scorn
+riurnor: swampland
+rost'ame: rainforest
+rostu: rainy, wet, damp
+sanan'inder: dictionary
+saner: to speak
+sanern: speech, language
+saneyir: debater, public speaker, orator
+san'tali: letter
+san'talian: letters
+sair: worker, spreader
+sewer: to stew
+sewonn: hearty
+silir: swordsman, swordfighter
+silma: greatsword, broadsword
+sirameu: honourable
+siruonn: bitter, umami
+siyuerir: player, actor
+siyuern: play, performance
+sohaer: ruler
+suikaonn: sweet
+sulasul: sunlight
+sulcelia: starlight
+sul'irrin: glowstone
+synalli: powerful
+taeleher: to mind, to consider
+taher: to ascend, to rise, to climb
+tahorranii: hawks
+talareh: stone
+taliame: tree
+talivalah: halfling
+taliuth: oppressor
+tal'uruk: goblin
+tayna'puerith: biography
+tehrir: miller
+tehr'lin: mill
+tennallarii: sea
+thruer: to explode
+thrurn: explosive, dynamite
+thilln: silver
+thulith: metal
+thuln: ore, raw material
+tilrer: to serve, to submit
+tilrir: servant
+tilru: servile, submissive
+tilru'chirr: dog
+tireth: doom, judgement
+tirether: to deem, to judge
+tirethir: doomsman, judge
+tiru: lawful, legal
+tirune: illegal
+tos'sae: razing, pillaging
+tosu: dry
+turu: boney, spindly
+turru: sheepish
+tuva'aenguln: pantheon
+tuva'lye: everyone
+tuvalye'hiylne: pandemic
+tuva'maln: All Father
+ullr: rot, decay, wither
+ullral: monster, undead
+uradir: naysayer
+uriarir: crier, shouter, announcer, herald
+uriarn: claim
+uriaru: loud
+urthir: ruler
+uvul'igne: ash
+uvul'thrurn: gunpowder
+uvul'wehn: flour
+valein'tehral: cheese
+vallei'tehrlin: watermill
+valmer: to paint, to sculpt, to do art
+valmir: artist
+vihaier: to whisper
+vuln: fox
+wehn'bidan: ale, beer
+wehnor: grassland
+wehn'sae: baking
+wehn'sair: baker
+wehn'tehral: bread
+welieryem: to repeat, to echo
+wynn: happiness
+wyn'resvuleth: eucatastrophe
+## Fiyem expansion
+acalicne: kindlefen
+aela: bad
+ahaces: glory
+ailacaln: arcaurum
+akalenponn: tomato
+almen: ship
+almenor: haven, port
+ame'chaewa: king's ivy
+ame'felis: lynx
+ame'felisii: wildcat
+amelarn: hazel
+ame'lucii: huckleberry
+amorn: bush
+ar'fetan: winter
+ar'vell: autumn, fall
+ar'lent: spring
+ar'miran: summer
+athrihnan: serpent's stalk
+ayal'cionn: lemon
+ayuacatel: avocado
+azdrazi'masu: dracanium
+barbu'lucii: blackberry
+belou'akaln: rose gold
+berrorn: yew
+beru: bronze
+bilo: hare, rabbit
+biloemer: to unite
+bilok'carn: beaver
+bilo'lin: warren
+caelonn: nickel
+caer: deer
+caerleh: antler
+caer'lucii: raspberry
+cantar: to sit
+carn: rodent, rat
+carnii: mouse
+chaewa: coffee
+cheru: oak
+cherularn: acorn
+cionn: citrus
+civer: to lay
+ciwienti: night sap
+daemon'masu: daemonsteel
+dioler: to reach
+draelareh: dralachite
+elumer: to shine
+eth'larum: border, edge
+ethlarum'nor: borderland, march, frontier
+ettonn: egg
+enti: flower
+entien: flowering, blooming, blossoming
+entiu: flowery
+fae: fae, fairy
+faekhetsu: mule
+faeser: to ride
+fae'siruan: faerie truffles
+felis: cat
+fennuvul: athin
+feruer: feather
+fetalor: gelunite
+fisaen'lucii: strawberry
+fisaenponn: pomegranate
+hamat: dolphin
+heiluner: to embrace, to hug
+hesin: tundra
+hucarer: to stick
+hucaru: sticky
+igon: smoke
+igoner: to smoke
+ihnorn: coppice
+ilentor: to take
+illam: bismuth
+illam'beru: bismuth bronze
+illaruman: striped
+illaruman'felis: tiger
+illaruman'mecarn: chipmunk
+illener: to attune
+illn: zinc
+ilsolynan: spotted, dotted, speckled
+ilsolynan'felis: leopard
+ilsolynan'felisii: cheetah
+ilum'lucii: glowberry
+iper: birch
+iuver: to shake
+kaluca: chicken
+kastalarn: chestnut
+keelareh: magnetus
+kerilum: nightglow
+ker'lucii: black currant
+ker'beru: black bronze
+ketta: nightbird
+khetsu: donkey
+kwak: raven
+laer: to stand
+laker: to offend
+lan: leaf
+lanu: leafy
+larn: nut
+larn'lenponn: quince
+larum: stripe, line
+lem: hair
+lemu: hairy
+lenponn: apple, fruit
+lentilem: beardweed
+lentoslarn: walnut
+leran: goat
+lucii: berry
+luciorn: grapevine
+malen: melon
+mali'lem: elf's hair vine
+manileh: animals
+masu: steel
+mecarn: squirrel
+mettaponn: cherry
+mirayal: orange (color)
+mirayal'tosorn: acacia
+miriurn: mangrove
+miruel'lucii: red currant
+mirun: copper
+morma: bear
+mus: banana
+narier: to run
+neanar: to hide, to disappear
+nemiis: spider
+nory: shore, coast, strand, beach
+okhel: beech
+okarn'larn: coconut
+okarn'orn: palm
+okarn'ponn: date
+otheraell: blisterthorn
+parpilocer: to prepare
+par'vell: apricot
+peponn: pumpkin
+pilocer: to work
+pirost: pear
+ponn: fruit
+ren: road, way, path, street
+rhenponn: peach
+riurn'carn: muskrat
+riurn'lucii: cranberry
+rostame'felis: jaguar
+rostame'felisii: ocelot
+saylar: to praise
+seliar: to look
+simar: spruce
+solyn: spot, dot, speck
+sorr: crow
+suika'lucii: sweet berry
+suika'orn: maple
+suika'wehnonn: pastry
+taehar: to raise, to lift
+tal'beru: brass
+thilln'ii: platinum
+thilln'tivern: pewter
+thrurlareh: volatite
+thrur'masu: boomsteel
+tivern: tin
+tosorn: desert tree or shrub, dead bush
+tualer: to cook
+uel: color
+vaed: lead
+vaeler: to stream, to flow
+vaeln: stream, brook, creek
+vaelnarn: bridge, crossing, ford
+vaelnarner: to cross, to ford
+vaelren: river
+vallel'lucii: blueberry
+vallier: willow
+vallon: fog
+valmuellen: plum
+vanter: to come
+vekurth: hall
+vell: harvest, waning
+velulareh: lunarite
+vuln'lucii: lingonberry
+waelu: fame
+wehnonn: cake
+welieyetta: parrot
+wyar: to stomp, to stamp
+yamar: to charge
+yeluer: to connect
