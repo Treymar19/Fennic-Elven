@@ -224,6 +224,37 @@ def to_fennic(text, mode=MODES[0]):
     elif tense == "future": out[0] += "’ia"
     return f"### {' '.join(out)}\n\nWord order is as typed; the doc's order is Subject, Object, Verb.\n\n" + "\n".join(notes)
 
+# ── pick-which-words mode (roleplay: translate only a few words, keep the rest as typed) ──
+def lookup_en(raw, E):
+    """English word -> (Fennic form or None); handles plural 's, possessive 's and I/my."""
+    w = raw.lower().replace("’", "'")
+    poss = w.endswith("'s")
+    if poss: w = w[:-2]
+    c, plural = E.get(ALIAS.get(w, w)), False
+    if not c and w.endswith("s") and len(w) > 3:
+        c = E.get(w[:-1]); plural = bool(c)
+    if not c and w in ("i", "my"): c = E.get("me")
+    if not c: return None
+    f = c[0] + ("’len" if plural else "")
+    return "au’" + f if poss else f
+
+def word_options(text, mode=MODES[0]):
+    _, E = view(load(), mode)
+    seen, choices = set(), []
+    for raw in re.findall(r"[A-Za-z][A-Za-z'’]*", text or ""):
+        w, f = raw.lower().replace("’", "'"), lookup_en(raw, E)
+        if f and w not in seen:
+            seen.add(w); choices.append((f"{raw} → {f}", w))
+    return gr.update(choices=choices, value=[])
+
+def partial(text, picks, mode=MODES[0]):
+    _, E = view(load(), mode)
+    picks = set(picks or [])
+    def sub(m):
+        raw = m.group(0)
+        return (lookup_en(raw, E) or raw) if raw.lower().replace("’", "'") in picks else raw
+    return re.sub(r"[A-Za-z][A-Za-z'’]*", sub, text or "")
+
 def gloss_word(W, base, split=True):
     e = W.get(norm(base))
     if e: return clean_def(e["defs"][0]), "; ".join(e["defs"])
@@ -316,6 +347,9 @@ with gr.Blocks(title="Maparonnarn · Fennic Elven") as demo:
             e_in = gr.Textbox(label="English → Fennic", placeholder="I was cold")
             e_btn = gr.Button("Translate to Fennic")
             e_out = gr.Markdown()
+            pick_btn = gr.Button("Or pick which words to translate…")
+            pick = gr.CheckboxGroup(label="Tick the words to translate (the rest stay as typed)")
+            p_out = gr.Textbox(label="Your sentence", lines=3, interactive=False, show_copy_button=True)
             f_in = gr.Textbox(label="Fennic → English", placeholder="Ia’Ayred ehyubor")
             f_btn = gr.Button("Translate to English")
             f_out = gr.Markdown()
@@ -340,6 +374,8 @@ with gr.Blocks(title="Maparonnarn · Fennic Elven") as demo:
     kind.change(refresh, [kind, flt, mode], outs, api_name=False)
     flt.change(refresh, [kind, flt, mode], outs, api_name=False)
     e_btn.click(to_fennic, [e_in, mode], e_out, api_name=False); e_in.submit(to_fennic, [e_in, mode], e_out, api_name=False)
+    pick_btn.click(word_options, [e_in, mode], pick, api_name=False)
+    pick.change(partial, [e_in, pick, mode], p_out, api_name=False)
     f_btn.click(to_english, [f_in, mode], f_out, api_name=False); f_in.submit(to_english, [f_in, mode], f_out, api_name=False)
     q_btn.click(search, [q, mode], q_out, api_name=False); q.submit(search, [q, mode], q_out, api_name=False)
     n_btn.click(number, n_in, n_out, api_name=False); n_in.submit(number, n_in, n_out, api_name=False)
