@@ -29,7 +29,7 @@ SNAPSHOT = os.path.join(HERE, "maparonnarn_snapshot.txt")  # bundled copy, used 
 SHEET_ID = "1VRkqLhSXYRvWEFtWNwlprYyNJtJmznOuwXMPXMeaVDM"   # Vel'luah sheet, shared "anyone with the link"
 DARK_TABS = [("Special Words", "1721718391")]   # (title, gid). Add ("Dictionary", "<its gid>") here for more tabs
 DARK_SNAPSHOT = os.path.join(HERE, "maparonnarn_dark_snapshot.csv")   # bundled copy of the first tab
-WIKI = os.path.join(HERE, "maparonnarn_wiki_snapshot.txt")  # bundled Common Elven wiki list (static)
+WIKI_FILE = os.path.join(HERE, "maparonnarn_wiki_snapshot.txt")  # bundled Common Elven wiki list (static)
 TTL = 300                                                  # seconds between automatic re-syncs
 
 # header line in the doc -> how its "A = B" lines are read
@@ -227,7 +227,7 @@ def load(force=False):
                     text, src = _read(p), name; break
             if text is None: text, src = "", "nothing (offline and no snapshot)"
         _DB = parse(text)
-        _DB.update(parse_wiki(_read(WIKI)) if os.path.exists(WIKI) else {"WW": {}, "WE": {}})
+        _DB.update(parse_wiki(_read(WIKI_FILE)) if os.path.exists(WIKI_FILE) else {"WW": {}, "WE": {}})
         _DB.update(load_dark())
         _DB.update(src=src, err=err, t=time.time(), stamp=time.strftime("%Y-%m-%d %H:%M"))
         return _DB
@@ -237,18 +237,24 @@ def status_md(d):
     if d.get("err"): s += f"\n\n⚠️ Live sync failed ({d['err']}). Still showing the {d['src']} from {d['stamp']}."
     return s
 
-MODES = ["Snow Elf (doc)", "Common Elven (wiki)", "Dark Elf (Vel'luah)", "Mixed (all)"]
+MODES = ["Snow Elf (doc)", "Common Elven (wiki)", "Dark Elf (Vel'luah)"]
+SNOW, WIKI, DARK = MODES
+
+def _sel(mode):
+    """Ticked dialects as a set (a plain string works too); nothing ticked falls back to Snow Elf."""
+    sel = {mode} if isinstance(mode, str) else set(mode or [])
+    return (sel & set(MODES)) or {SNOW}
 
 def view(d, mode):
-    """Words/English index for the chosen dialect. Mixed = Snow Elf first, then Dark Elf, then wiki."""
-    if mode == MODES[1]: return d["WW"], d["WE"]
-    if mode == MODES[2]: return d["DW"], d["DE"]
-    if mode != MODES[3]: return d["W"], d["E"]
-    W = {k: dict(e, defs=list(e["defs"])) for k, e in d["W"].items()}
-    E = {k: list(v) for k, v in d["E"].items()}
-    for tag, wk, ek in (("dark", "DW", "DE"), ("wiki", "WW", "WE")):
+    """Words/English index for the ticked dialects. Priority when mixing: Snow Elf, then Dark Elf, then wiki."""
+    sel = _sel(mode)
+    parts = [(t, wk, ek) for t, wk, ek in ((SNOW, "W", "E"), (DARK, "DW", "DE"), (WIKI, "WW", "WE")) if t in sel]
+    if len(parts) == 1: return d[parts[0][1]], d[parts[0][2]]
+    tags = {SNOW: "snow", DARK: "dark", WIKI: "wiki"}
+    W, E = {}, {}
+    for t, wk, ek in parts:
         for k, e in d[wk].items():
-            if k in W: W[k]["defs"] += [f"({tag}) " + x for x in e["defs"]]
+            if k in W: W[k]["defs"] += [f"({tags[t]}) " + x for x in e["defs"]]
             else: W[k] = dict(e, defs=list(e["defs"]))
         for k, v in d[ek].items():
             lst = E.setdefault(k, [])
@@ -259,7 +265,7 @@ def view(d, mode):
 def to_fennic(text, mode=MODES[0]):
     d, out, notes, tense = load(), [], [], None
     _, E = view(d, mode)
-    snow = mode in (MODES[0], MODES[3])   # tense ia, plural 'len and possessive au' are Snow Elf grammar
+    snow = SNOW in _sel(mode)   # tense ia, plural 'len and possessive au' are Snow Elf grammar
     toks = re.findall(r"[A-Za-z][A-Za-z'’]*", text or "")
     i = 0
     while i < len(toks):
@@ -305,7 +311,7 @@ def lookup_en(raw, E, affixes=True):
 
 def word_options(text, mode=MODES[0]):
     _, E = view(load(), mode)
-    aff = mode in (MODES[0], MODES[3])
+    aff = SNOW in _sel(mode)
     seen, choices = set(), []
     for raw in re.findall(r"[A-Za-z][A-Za-z'’]*", text or ""):
         w, f = raw.lower().replace("’", "'"), lookup_en(raw, E, aff)
@@ -315,7 +321,7 @@ def word_options(text, mode=MODES[0]):
 
 def partial(text, picks, mode=MODES[0]):
     _, E = view(load(), mode)
-    aff = mode in (MODES[0], MODES[3])
+    aff = SNOW in _sel(mode)
     picks = set(picks or [])
     def sub(m):
         raw = m.group(0)
@@ -376,7 +382,8 @@ def search(q, mode=MODES[0]):
 def browse(kind, flt, mode=MODES[0]):
     d, f = load(), (flt or "").lower()
     W, _ = view(d, mode)
-    sn, dk = mode in (MODES[0], MODES[3]), mode in (MODES[2], MODES[3])
+    sel = _sel(mode)
+    sn, dk = SNOW in sel, DARK in sel
     if kind == "Phrases":
         rows = ([list(r) for r in d["P"]] if sn else []) + ([list(r) for r in d["DP"]] if dk else [])
     elif kind == "Numbers":
@@ -411,7 +418,7 @@ with gr.Blocks(title="Maparonnarn · Fennic Elven") as demo:
     gr.Markdown("# Maparonnarn · Fennic Elven (Snow Elf dialect)")
     status = gr.Markdown()
     sync_btn = gr.Button("🔄 Sync from Google Doc")
-    mode = gr.Radio(MODES, value=MODES[0], label="Dialect (Mixed = Snow Elf first, then Dark Elf, then wiki)")
+    mode = gr.CheckboxGroup(MODES, value=[MODES[0]], label="Dialects: tick one, or two or three to mix them (Snow Elf wins, then Dark Elf, then wiki)")
     with gr.Tabs():
         with gr.Tab("Translate"):
             e_in = gr.Textbox(label="English → Fennic", placeholder="I was cold")
