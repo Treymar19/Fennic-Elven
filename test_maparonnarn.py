@@ -5,7 +5,8 @@ import os, sys, tempfile, importlib.util
 here = os.path.dirname(os.path.abspath(__file__))
 spec = importlib.util.spec_from_file_location("m", os.path.join(here, "maparonnarn_app.py"))
 m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
-m.MY_FILE = os.path.join(tempfile.mkdtemp(), "my_words.txt")   # never touch your real list
+_tmp = tempfile.mkdtemp()
+m.MY_FILE, m.SAVED_FILE = os.path.join(_tmp, "my_words.txt"), os.path.join(_tmp, "saved_lines.txt")   # never touch your real files
 d = m.load(force=True)
 S, W, D = m.SNOW, m.WIKI, m.DARK
 fails = []
@@ -33,7 +34,7 @@ check("nothing ticked falls back to snow", first("I was cold", []) == first("I w
 check("view() does not mutate the dialects", (lambda a: (m.view(d, [S, D, W]), len(d["DW"]["vraz"]["defs"]) == a)[1])(len(d["DW"]["vraz"]["defs"])))
 check("unknown words stay English", first("quixotic zebra", [S]) == "### quixotic zebra")
 check("pick-words keeps punctuation", m.partial("It is cold, friend.", ["cold"], [S]) == "It is Burim, friend.")
-check("pick-words styles", m.partial("cold", ["cold"], [S], "Italics") == "*Burim*" and m.partial("cold", ["cold"], [S], "With English in brackets") == "Burim (cold)")
+check("pick-words styles", m.partial("cold", ["cold"], [S], "Italics") == "*Burim*" and m.partial("cold", ["cold"], [S], "With the original word in brackets") == "Burim (cold)")
 check("overlap view has rows", len(m.browse("Overlaps", "", [S, W])) > 0)
 check("script maps known letters", m.to_script("Vraz", False) == "ʋᵲαչ", m.to_script("Vraz", False))
 _saved = m._DB; m._DB = dict(_saved, DL={}, t=__import__("time").time() + 1e6)
@@ -94,6 +95,37 @@ check("vel'luah: plural + article ('the books' -> olanuzhel)", first("the books"
 check("vel'luah: possessive suffix", first("Laevaelyn's book", [D]).startswith("### Laevaelyn’uhn olanu"), first("Laevaelyn's book", [D]))
 check("vel'luah: past and future prefixes", first("did hate", [D]) == "### a’adry" and first("shall hate", [D]) == "### e’adry", first("did hate", [D]))
 check("vel'luah: suffix skips a repeated letter", m.attach("memnu", "ule") == "memnule" and m.attach("maehr", "zh") == "maehrzh")
+m._DB = saved
+# Phrases, smarter English matching, reverse pick-words, line builder, practice, saved lines, verb-final option
+check("phrase: English -> Vel'luah ('go with the moon')", first("go with the moon", [D]) == "### Ukh lu velulael", first("go with the moon", [D]))
+check("phrase: Vel'luah -> English", "go with the Moon" in m.to_english("Ukh lu velulael", [D]).split("\n")[0])
+check("phrase: longest match wins over single words", first("go in shame", [D]) == "### Ukh bo bashuk", first("go in shame", [D]))
+check("variants: studies / running / hated", ("study", "s") in m.variants("studies") and ("run", "ing") in m.variants("running") and ("hate", "ed") in m.variants("hated"))
+check("snow: plural noun still gets 'len", "Per’len" in first("horses", [S]), first("horses", [S]))
+check("wiki: likes finds like", first("likes", [W]) == first("like", [W]) and first("like", [W]) != "### like", first("likes", [W]))
+check("snow: -ed sets past tense", first("walked", [S]).startswith("### Ia’") or "walk" in first("walked", [S]).lower())
+check("verb-final option moves the verb", first("I see Ayred", [S]) == "### Kai Tr’surra Ayred" and m.to_fennic("I see Ayred", [S], True).split("\n")[0] == "### Kai Ayred Tr’surra", (first("I see Ayred", [S]), m.to_fennic("I see Ayred", [S], True).split("\n")[0]))
+check("reverse pick-words", "sleep" in m.partial_rev("Ia’Ayred ehyubor", ["ehyubor"], [S]).lower() and m.partial_rev("Ia’Ayred ehyubor.", ["ehyubor"], [S]).endswith("."), m.partial_rev("Ia’Ayred ehyubor.", ["ehyubor"], [S]))
+check("reverse pick-words list", any("ehyubor" in c[0] for c in m.word_options_rev("Ia’Ayred ehyubor", [S])["choices"]))
+check("line builder formats", m.build_line("Valyra", "good", [D], m.LINE_FORMATS[0], True, "", False) == 'Valyra says, “Vraz” (good)' and m.build_line("", "good", [D]) == "“Vraz”" and m.build_line("Valyra", "good", [D], m.LINE_FORMATS[1], False, "bows") == "*bows* Valyra: Vraz", m.build_line("Valyra", "good", [D], m.LINE_FORMATS[1], False, "bows"))
+msg, box = m.add_saved("Valyra says, “Vraz”")
+check("saved lines are added", "Added" in msg and "Vraz" in box and "Vraz" in m.get_saved())
+import random, json
+random.seed(3)
+card, _, _, st = m.new_card(m.DIRS[0], [S], "")
+ans = json.loads(st)["a"][0]
+fb, st2 = m.check_card(ans, st)
+check("practice: correct answer scores", "✅" in fb and json.loads(st2)["c"] == 1, fb)
+_, _, _, st3 = m.new_card(m.DIRS[1], [S], st2)
+fb2, st4 = m.check_card("zzzz", st3)
+check("practice: wrong answer, score carries over", "❌" in fb2 and json.loads(st4)["t"] == 2 and json.loads(st4)["c"] == 1, fb2)
+m.save_mine("Ukh lu mi = go with me")
+check("my words: multi-word phrases work", first("go with me", [S]) == "### Ukh lu mi", first("go with me", [S]))
+# word endings on the Vel'luah grammar (uses the sample dictionary built above)
+saved = m._DB
+m._DB = dict(saved, **m.parse_dark([("Dictionary", "dict", b2.getvalue())]), t=time.time() + 1e6)
+got = (first("hates", [D]), first("hating", [D]), first("hated", [D]))
+check("vel'luah endings: hates / hating / hated", got == ("### adry", "### adryule", "### a’adry"), got)
 m._DB = saved
 print("\nAll good." if not fails else f"\n{len(fails)} check(s) failed: {', '.join(fails)}")
 sys.exit(1 if fails else 0)

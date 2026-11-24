@@ -18,7 +18,7 @@ try:
 except Exception:
     pass
 
-import os, re, time, threading, unicodedata, urllib.request, difflib
+import os, re, time, json, random, threading, unicodedata, urllib.request, difflib
 import gradio as gr
 
 DOC_ID = "1W-116l4867x-l49Sjh8Wsox5y-SXZ2Zsz_Pw302d_DM"   # doc must be shared "anyone with the link"
@@ -30,6 +30,7 @@ SHEET_ID = "1VRkqLhSXYRvWEFtWNwlprYyNJtJmznOuwXMPXMeaVDM"   # Vel'luah sheet, sh
 DARK_TABS = [("Special Words", "1721718391", "words"), ("Dictionary", "0", "dict"), ("Grammar", "1887383092", "grammar")]   # (title, gid, layout); add the Grammar tab's gid here if wanted
 DARK_SNAPSHOT = os.path.join(HERE, "maparonnarn_dark_snapshot.csv")   # bundled copy of the Special Words tab
 DARK_SNAPSHOTS = {"1721718391": DARK_SNAPSHOT, "1887383092": os.path.join(HERE, "maparonnarn_dark_grammar_snapshot.csv")}   # the Dictionary tab has none: it is live only
+SAVED_FILE = os.path.join(HERE, "saved_lines.txt")   # lines you save from the line builder
 MY_FILE = os.path.join(HERE, "my_words.txt")   # your own words: "Fennic = English", one per line
 WIKI_FILE = os.path.join(HERE, "maparonnarn_wiki_snapshot.txt")  # bundled Common Elven wiki list (static)
 TTL = 300                                                  # seconds between automatic re-syncs
@@ -149,12 +150,13 @@ def parse_dark(sources):
     return {"DW": W, "DE": E, "DP": P, "DN": N, "DA": A, "DL": DL, "DG": "\n\n".join(DG)}
 
 def load_mine():
-    W, E = {}, {}
+    W, E, MP = {}, {}, []
     add = _adder(W, E)
     for raw in (_read(MY_FILE) if os.path.exists(MY_FILE) else "").split("\n"):
         if "=" in raw and not raw.lstrip().startswith("#"):
             a, b = raw.split("=", 1); add(a, b, "My words")
-    return {"MW": W, "ME": E}
+            if " " in a.strip(): MP.append((a.strip(), b.strip(), "My words"))
+    return {"MW": W, "ME": E, "MP": MP}
 
 def get_mine():
     return _read(MY_FILE) if os.path.exists(MY_FILE) else "# Fennic = English, one per line. Your words win over every dialect.\n"
@@ -330,6 +332,42 @@ def view(d, mode):
     return W, E
 
 # ── translation ───────────────────────────────────────────────────────────
+def variants(w):
+    """Possible base forms of an English word, with what the ending was ('s', 'ing', 'ed', 'ly')."""
+    out = []
+    if w.endswith("ies") and len(w) > 4: out.append((w[:-3] + "y", "s"))
+    if w.endswith("es") and len(w) > 3: out.append((w[:-2], "s"))
+    if w.endswith("s") and len(w) > 3 and not w.endswith("ss"): out.append((w[:-1], "s"))
+    for suf in ("ing", "ed"):
+        if w.endswith(suf) and len(w) > len(suf) + 2:
+            b = w[:-len(suf)]
+            out += [(b, suf), (b + "e", suf)] + ([(b[:-1], suf)] if len(b) > 2 and b[-1] == b[-2] else [])
+    if w.endswith("ly") and len(w) > 4: out.append((w[:-2], "ly"))
+    return out
+
+def find_en(w, E):
+    """English word -> (Fennic candidates, ending kind). Exact match first, then base forms (hates, hating, hated...)."""
+    c = E.get(w) or E.get(ALIAS.get(w, w))
+    if c: return c, None
+    for b, k in variants(w):
+        c = E.get(b)
+        if c: return c, k
+    return None, None
+
+def phrase_maps(d, mode):
+    """Multi-word phrases of the ticked dialects (plus your own): English words -> Fennic, and Fennic words -> English."""
+    sel = _sel(mode)
+    rows = list(d["MP"]) + (d["P"] if SNOW in sel else []) + (d["DP"] if DARK in sel else [])
+    e2f, f2e = {}, {}
+    for fe, en, _ in rows:
+        fe = fe.strip().rstrip(".!?")
+        mean = clean_def(en)
+        kf = tuple(norm(w) for w in fe.split())
+        if len(kf) > 1: f2e.setdefault(kf, mean)
+        ke = tuple(re.findall(r"[a-z']+", mean.lower().replace("’", "'")))
+        if 1 < len(ke) <= 6: e2f.setdefault(ke, fe)
+    return e2f, f2e
+
 ARTICLES = {"the": "el", "a": "o", "an": "ga"}   # Vel'luah articles attach to the back of nouns
 DARK_PAST, DARK_FUT = {"did", "had"}, {"shall", "gonna"}   # "was/were" and "will" have their own Vel'luah words
 
@@ -337,16 +375,22 @@ def attach(word, sfx):
     """Latch a suffix onto a word; if the word already ends with the suffix's first letter, that letter is skipped."""
     return word + (sfx[1:] if sfx[0].isalpha() and word.lower().endswith(sfx[0].lower()) else sfx)
 
-def to_fennic(text, mode=MODES[0]):
-    d, out, notes, tense = load(), [], [], None
+def to_fennic(text, mode=MODES[0], sov=False):
+    d, out, verbs, notes, tense = load(), [], [], [], None
     W, E = view(d, mode)
+    e2f, _ = phrase_maps(d, mode)
     snow = SNOW in _sel(mode)               # Snow Elf grammar wins when ticked: tense ia, plural 'len, possessive au'
     dark = DARK in _sel(mode) and not snow  # otherwise Vel'luah grammar: a'/e' tense, -zh plural, -el/-o/-ga articles, 'uhn possessive
-    pos = lambda f: W.get(norm(f), {}).get("sec", "")
     pend_t = pend_a = None
     toks = re.findall(r"[A-Za-z][A-Za-z'’]*", text or "")
     i = 0
     while i < len(toks):
+        hit = None
+        for n in range(min(6, len(toks) - i), 1, -1):   # whole phrases first (longest match)
+            k = tuple(t.lower().replace("’", "'") for t in toks[i:i + n])
+            if k in e2f: hit = (n, e2f[k]); break
+        if hit:
+            out.append(hit[1]); verbs.append(False); i += hit[0]; continue
         raw = toks[i]; w = raw.lower().replace("’", "'"); i += 1
         if snow and w in PAST: tense = "past"; continue
         if snow and w in FUT: tense = "future"; continue
@@ -358,43 +402,48 @@ def to_fennic(text, mode=MODES[0]):
             if w in ARTICLES: pend_a = ARTICLES[w]; continue
         poss = (snow or dark) and w.endswith("'s")
         if poss: w = w[:-2]
-        plural = False
-        c = E.get(w) or E.get(ALIAS.get(w, w))
+        c, kind = find_en(w, E)
         if not c and w in ("i", "my"): c = E.get("me")   # wiki list only has "me"
-        if not c and (snow or dark) and w.endswith("s") and len(w) > 3:
-            c = E.get(w[:-1]); plural = bool(c)
-            if plural and dark and "/ Nouns" not in pos(c[0]): c, plural = None, False
-        sec = pos(c[0]) if c else ""
+        ent = W.get(norm(c[0]), {}) if c else {}
+        isverb = "Verbs" in ent.get("sec", "") or any(x.lower().startswith("to ") for x in ent.get("defs", []))
+        isnoun = "Nouns" in ent.get("sec", "")
         if c:
             f = c[0]
             if len(c) > 1: notes.append(f"- **{raw}**: also {', '.join(c[1:6])}")
         else:
             f = raw[:-2] if poss else raw   # not in the chosen dictionary: left in English (without its 's)
             if not raw[0].isupper(): notes.append(f"- **{raw}**: not in the dictionary, left in English")
-        if plural: f = f + "’len" if snow else attach(f, "zh")
-        if dark and pend_t and "/ Verbs" in sec: f, pend_t = pend_t + f, None
-        if dark and pend_a and "/ Nouns" in sec: f, pend_a = attach(f, pend_a), None
+        if kind == "s":                     # a plural noun, or a verb ending in -s
+            if snow and not isverb: f += "’len"
+            elif dark and isnoun: f = attach(f, "zh")
+        elif kind == "ed":
+            if snow: tense = "past"
+            elif dark and isverb: pend_t = pend_t or "a’"
+        elif kind == "ing" and dark and isverb: f = attach(f, "ule")
+        if dark and pend_t and isverb: f, pend_t = pend_t + f, None
+        if dark and pend_a and isnoun: f, pend_a = attach(f, pend_a), None
         if poss: f = attach(f, "’uhn") if dark else "au’" + f
-        out.append(f)
+        out.append(f); verbs.append(isverb)
     if not out: return "Type an English sentence."
+    moved = sov and snow and any(verbs)
+    if moved: out = [f for f, v in zip(out, verbs) if not v] + [f for f, v in zip(out, verbs) if v]
     if tense == "past": out[0] = "Ia’" + out[0]
     elif tense == "future": out[0] += "’ia"
-    order = ("Word order is as typed; the Snow Elf doc's order is Subject, Object, Verb." if snow else
+    order = ("Word order is as typed; the Snow Elf doc's order is Subject, Object, Verb." if snow and not moved else
+             "Verbs moved to the end (Subject, Object, Verb) as a best guess; check the result." if moved else
              "Word order is as typed; in Vel'luah the predicate follows the subject." if dark else "Word order is as typed.")
     return f"### {' '.join(out)}\n\n{order}\n\n" + "\n".join(notes)
 
 # ── pick-which-words mode (roleplay: translate only a few words, keep the rest as typed) ──
 def lookup_en(raw, E, affixes=True):
-    """English word -> (Fennic form or None); handles plural 's, possessive 's and I/my."""
+    """English word -> Fennic form or None; handles base forms (likes, liking, liked), plural 's and possessive 's."""
     w = raw.lower().replace("’", "'")
     poss = affixes and w.endswith("'s")
     if poss: w = w[:-2]
-    c, plural = E.get(w) or E.get(ALIAS.get(w, w)), False
-    if not c and affixes and w.endswith("s") and len(w) > 3:
-        c = E.get(w[:-1]); plural = bool(c)
+    c, kind = find_en(w, E)
     if not c and w in ("i", "my"): c = E.get("me")
     if not c: return None
-    f = c[0] + ("’len" if plural else "")
+    f = c[0] + ("’len" if affixes and kind == "s" else "")
     return "au’" + f if poss else f
 
 def word_options(text, mode=MODES[0]):
@@ -407,7 +456,7 @@ def word_options(text, mode=MODES[0]):
             seen.add(w); choices.append((f"{raw} → {f}", w))
     return gr.update(choices=choices, value=[])
 
-STYLES = ["Plain", "Italics", "Bold", "With English in brackets"]
+STYLES = ["Plain", "Italics", "Bold", "With the original word in brackets"]
 
 def partial(text, picks, mode=MODES[0], style=STYLES[0]):
     _, E = view(load(), mode)
@@ -417,7 +466,7 @@ def partial(text, picks, mode=MODES[0], style=STYLES[0]):
         raw = m.group(0)
         f = lookup_en(raw, E, aff) if raw.lower().replace("’", "'") in picks else None
         if not f: return raw
-        return {"Italics": f"*{f}*", "Bold": f"**{f}**", "With English in brackets": f"{f} ({raw})"}.get(style, f)
+        return {"Italics": f"*{f}*", "Bold": f"**{f}**", STYLES[3]: f"{f} ({raw})"}.get(style, f)
     return re.sub(r"[A-Za-z][A-Za-z'’]*", sub, text or "")
 
 def gloss_word(W, base, split=True):
@@ -429,27 +478,124 @@ def gloss_word(W, base, split=True):
         if any(es): return " + ".join(clean_def(x["defs"][0]) if x else "?" for x in es), ""
     return None, ""
 
+def gloss_token(W, tok):
+    """One Fennic word -> (short gloss, all meanings, endings found such as past or plural)."""
+    t = tok.strip(".").replace("‘", "’").replace("'", "’")
+    g, allm = gloss_word(W, t, split=False)
+    flags, b = [], t
+    if g is None:
+        if b.lower().startswith("ia’"): flags.append("past"); b = b[3:]
+        if b.lower().endswith("’ia"): flags.append("future"); b = b[:-3]
+        if b.lower().startswith("au’"): flags.append("possessive"); b = b[3:]
+        if b.lower().endswith("’len"): flags.append("plural"); b = b[:-4]
+        if b.lower().startswith("tr’"): flags.append("verb"); b = b[3:]
+        g, allm = gloss_word(W, b, split=False)
+    if g is None: g, allm = gloss_word(W, b)
+    if g is None: g, allm = b, "not in the dictionary, left as written"
+    return g, allm, flags
+
+TOKEN_RE = r"[^\s,;:!?()\[\]]+"
+
 def to_english(text, mode=MODES[0]):
     d, sent, rows = load(), [], []
     W, _ = view(d, mode)
-    for tok in re.findall(r"[^\s,;:!?()\[\]]+", text or ""):
-        t = tok.strip(".").replace("‘", "’").replace("'", "’")
-        g, allm = gloss_word(W, t, split=False)
-        flags, b = [], t
-        if g is None:
-            if b.lower().startswith("ia’"): flags.append("past"); b = b[3:]
-            if b.lower().endswith("’ia"): flags.append("future"); b = b[:-3]
-            if b.lower().startswith("au’"): flags.append("possessive"); b = b[3:]
-            if b.lower().endswith("’len"): flags.append("plural"); b = b[:-4]
-            if b.lower().startswith("tr’"): flags.append("verb"); b = b[3:]
-            g, allm = gloss_word(W, b, split=False)
-        if g is None: g, allm = gloss_word(W, b)
-        if g is None: g = b; allm = "not in the dictionary, left as written"
+    _, f2e = phrase_maps(d, mode)
+    toks = re.findall(TOKEN_RE, text or "")
+    i = 0
+    while i < len(toks):
+        hit = None
+        for n in range(min(6, len(toks) - i), 1, -1):   # whole phrases first (longest match)
+            k = tuple(norm(t.strip(".")) for t in toks[i:i + n])
+            if k in f2e: hit = (n, f2e[k]); break
+        if hit:
+            n, g = hit
+            sent.append(g); rows.append(f"| {' '.join(toks[i:i + n])} | {g} | phrase |"); i += n; continue
+        tok = toks[i]; i += 1
+        g, allm, flags = gloss_token(W, tok)
         if flags: g += f" ({'/'.join(flags)})"
         sent.append(g)
         rows.append(f"| {tok} | {g} | {allm.replace('|', '/')} |")
     if not sent: return "Type a Fennic sentence."
     return f"### {' · '.join(sent)}\n\n| Fennic | Gloss | All meanings |\n|---|---|---|\n" + "\n".join(rows)
+
+def word_options_rev(text, mode=MODES[0]):
+    W, _ = view(load(), mode)
+    seen, choices = set(), []
+    for tok in re.findall(TOKEN_RE, text or ""):
+        g, allm, _ = gloss_token(W, tok)
+        key = tok.strip(".").lower()
+        if "not in the dictionary" not in allm and key not in seen:
+            seen.add(key); choices.append((f"{tok.strip('.')} → {g}", key))
+    return gr.update(choices=choices, value=[])
+
+def partial_rev(text, picks, mode=MODES[0], style=STYLES[0]):
+    W, _ = view(load(), mode)
+    picks = set(picks or [])
+    def sub(m):
+        tok = m.group(0); core = tok.rstrip("."); tail = tok[len(core):]
+        if core.lower() not in picks: return tok
+        g = gloss_token(W, core)[0]
+        return {"Italics": f"*{g}*", "Bold": f"**{g}**", STYLES[3]: f"{g} ({core})"}.get(style, g) + tail
+    return re.sub(TOKEN_RE, sub, text or "")
+
+# ── roleplay line builder and saved lines ──
+LINE_FORMATS = ["Name says, “…”", "Name: …", "“…” Name says", "Just the words"]
+
+def build_line(speaker, english, mode=MODES[0], fmt=LINE_FORMATS[0], note=False, emote="", sov=False):
+    res = to_fennic(english, mode, sov)
+    if res.startswith("Type"): return ""
+    fen = res.split("\n")[0].replace("### ", "", 1)
+    who = (speaker or "").strip()
+    if not who: line = f"“{fen}”" if fmt != LINE_FORMATS[3] else fen
+    else: line = {LINE_FORMATS[0]: f"{who} says, “{fen}”", LINE_FORMATS[1]: f"{who}: {fen}", LINE_FORMATS[2]: f"“{fen}” {who} says"}.get(fmt, fen)
+    if (emote or "").strip(): line = f"*{emote.strip()}* " + line
+    return line + (f" ({english.strip()})" if note else "")
+
+def get_saved():
+    return _read(SAVED_FILE) if os.path.exists(SAVED_FILE) else ""
+
+def write_saved(text):
+    try:
+        with open(SAVED_FILE, "w", encoding="utf-8") as f: f.write(text or "")
+    except OSError as e:
+        return f"Could not save: {e}"
+    return "Saved."
+
+def add_saved(line):
+    if not (line or "").strip(): return "Build a line first.", get_saved()
+    cur = get_saved().rstrip("\n")
+    msg = write_saved(cur + ("\n" if cur else "") + line.strip() + "\n")
+    return ("Added to your saved lines." if msg == "Saved." else msg), get_saved()
+
+# ── practice cards ──
+DIRS = ["Fennic → English", "English → Fennic"]
+
+def new_card(direction, mode=MODES[0], st=""):
+    W, E = view(load(), mode)
+    pool = [e for e in W.values() if e["defs"] and 0 < len(clean_def(e["defs"][0])) <= 40]
+    try: c = json.loads(st or "{}")
+    except ValueError: c = {}
+    score = f"{c.get('c', 0)}/{c.get('t', 0)}"
+    if not pool: return "No words loaded for the ticked dialects.", "", "", st
+    e = random.choice(pool); meaning = clean_def(e["defs"][0])
+    if direction == DIRS[1]:
+        keys = en_keys(e["defs"][0]) or [meaning.lower()]
+        answers = sorted({norm(f) for f in {e["form"]} | {x for k in keys for x in E.get(k, [])}})
+        prompt, shown = f"### {meaning}\nHow do you say it?", e["form"]
+    else:
+        answers = sorted({norm(k) for dfn in e["defs"] for k in en_keys(dfn)} | {norm(meaning.lower())})
+        prompt, shown = f"### {e['form']}\nWhat does it mean?", meaning
+    state = json.dumps({"a": answers, "s": shown, "all": "; ".join(e["defs"])[:160], "c": c.get("c", 0), "t": c.get("t", 0), "done": False})
+    return f"{prompt}\n\nScore so far: {score}", "", "", state
+
+def check_card(answer, st=""):
+    try: c = json.loads(st or "")
+    except ValueError: return "Press **New card** first.", st
+    a = norm((answer or "").strip().lower().strip(" .!?,"))
+    ok = bool(a) and a in c["a"]
+    if not c.get("done"): c["t"] += 1; c["c"] += 1 if ok else 0; c["done"] = True
+    fb = f"✅ Correct: **{c['s']}** ({c['all']})" if ok else f"❌ Not quite. Answer: **{c['s']}** ({c['all']})"
+    return f"{fb}\n\nScore: {c['c']}/{c['t']}", json.dumps(c)
 
 # ── dictionary, browse, numbers ───────────────────────────────────────────
 def search(q, mode=MODES[0]):
@@ -550,6 +696,7 @@ with gr.Blocks(title="Maparonnarn · Fennic Elven") as demo:
     with gr.Tabs():
         with gr.Tab("Translate"):
             e_in = gr.Textbox(label="English → Fennic", placeholder="I was cold")
+            sov = gr.Checkbox(label="Snow Elf: move verbs to the end (Subject, Object, Verb; a best guess)", value=False)
             e_btn = gr.Button("Translate to Fennic")
             e_out = gr.Markdown()
             pick_btn = gr.Button("Or pick which words to translate…")
@@ -559,6 +706,32 @@ with gr.Blocks(title="Maparonnarn · Fennic Elven") as demo:
             f_in = gr.Textbox(label="Fennic → English", placeholder="Ia’Ayred ehyubor")
             f_btn = gr.Button("Translate to English")
             f_out = gr.Markdown()
+            pick_btn_r = gr.Button("Or pick which Fennic words to translate…")
+            pick_r = gr.Dropdown(multiselect=True, allow_custom_value=True, choices=[], label="Pick the Fennic words to translate (the rest stay as typed)")
+            p_out_r = gr.Textbox(label="Your sentence", lines=3, interactive=False, show_copy_button=True)
+        with gr.Tab("Line builder"):
+            lb_name = gr.Textbox(label="Speaker (optional)", placeholder="Valyra")
+            lb_in = gr.Textbox(label="What they say, in English", placeholder="good, thanks")
+            lb_fmt = gr.Radio(LINE_FORMATS, value=LINE_FORMATS[0], label="Format")
+            lb_emote = gr.Textbox(label="Action in italics before the line (optional)", placeholder="bows her head")
+            lb_note = gr.Checkbox(label="Add the English in brackets after the line", value=False)
+            lb_btn = gr.Button("Build the line")
+            lb_out = gr.Textbox(label="Ready to paste", lines=3, interactive=False, show_copy_button=True)
+            lb_save = gr.Button("Save this line")
+            lb_msg = gr.Markdown()
+        with gr.Tab("Practice"):
+            pr_dir = gr.Radio(DIRS, value=DIRS[0], label="Quiz direction (uses the dialects ticked above)")
+            pr_card = gr.Markdown()
+            pr_ans = gr.Textbox(label="Your answer")
+            pr_new = gr.Button("New card")
+            pr_chk = gr.Button("Check")
+            pr_fb = gr.Markdown()
+            pr_st = gr.State("")
+        with gr.Tab("Saved lines"):
+            gr.Markdown("Lines you save from the line builder. Edit freely, then press Save changes. On a free host the file can reset when it restarts.")
+            sv_box = gr.Textbox(lines=14, label="saved_lines.txt")
+            sv_btn = gr.Button("Save changes")
+            sv_msg = gr.Markdown()
         with gr.Tab("Search"):
             q = gr.Textbox(label="Word (either language)")
             q_btn = gr.Button("Search")
@@ -589,10 +762,13 @@ with gr.Blocks(title="Maparonnarn · Fennic Elven") as demo:
     mode.change(refresh, [kind, flt, mode], outs, api_name=False)
     kind.change(refresh, [kind, flt, mode], outs, api_name=False)
     flt.change(refresh, [kind, flt, mode], outs, api_name=False)
-    e_btn.click(to_fennic, [e_in, mode], e_out, api_name=False); e_in.submit(to_fennic, [e_in, mode], e_out, api_name=False)
+    e_btn.click(to_fennic, [e_in, mode, sov], e_out, api_name=False); e_in.submit(to_fennic, [e_in, mode, sov], e_out, api_name=False)
     pick_btn.click(word_options, [e_in, mode], pick, api_name=False)
     pick.change(partial, [e_in, pick, mode, style], p_out, api_name=False)
     style.change(partial, [e_in, pick, mode, style], p_out, api_name=False)
+    pick_btn_r.click(word_options_rev, [f_in, mode], pick_r, api_name=False)
+    pick_r.change(partial_rev, [f_in, pick_r, mode, style], p_out_r, api_name=False)
+    style.change(partial_rev, [f_in, pick_r, mode, style], p_out_r, api_name=False)
     mine_btn.click(save_mine, mine, mine_msg, api_name=False)
     demo.load(get_mine, None, mine, api_name=False)
     sc_in.change(to_script, [sc_in, sc_tr], sc_out, api_name=False)
@@ -600,6 +776,13 @@ with gr.Blocks(title="Maparonnarn · Fennic Elven") as demo:
     f_btn.click(to_english, [f_in, mode], f_out, api_name=False); f_in.submit(to_english, [f_in, mode], f_out, api_name=False)
     q_btn.click(search, [q, mode], q_out, api_name=False); q.submit(search, [q, mode], q_out, api_name=False)
     n_btn.click(number, [n_in, mode], n_out, api_name=False); n_in.submit(number, [n_in, mode], n_out, api_name=False)
+    lb_args = [lb_name, lb_in, mode, lb_fmt, lb_note, lb_emote, sov]
+    lb_btn.click(build_line, lb_args, lb_out, api_name=False); lb_in.submit(build_line, lb_args, lb_out, api_name=False)
+    lb_save.click(add_saved, lb_out, [lb_msg, sv_box], api_name=False)
+    sv_btn.click(write_saved, sv_box, sv_msg, api_name=False)
+    demo.load(get_saved, None, sv_box, api_name=False)
+    pr_new.click(new_card, [pr_dir, mode, pr_st], [pr_card, pr_fb, pr_ans, pr_st], api_name=False)
+    pr_chk.click(check_card, [pr_ans, pr_st], [pr_fb, pr_st], api_name=False); pr_ans.submit(check_card, [pr_ans, pr_st], [pr_fb, pr_st], api_name=False)
 
 # ── Built-in copies of the bundled data files (used only when the file isn't next to the app) ──
 _EMBEDDED = {
