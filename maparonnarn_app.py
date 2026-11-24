@@ -193,18 +193,19 @@ def fetch_sheet(gid, timeout=15):
         raise ValueError("Google returned a web page, not the sheet (is it shared as 'anyone with the link'?)")
     return text
 
-def load_dark():
+def load_dark(live=True):
     sources, kinds, errs = [], set(), []
     for n, (title, gid, kind) in enumerate(DARK_TABS):
         cache = os.path.join(HERE, f"maparonnarn_dark_{gid}.csv")
         try:
+            if not live: raise LookupError("skipped")
             text, src = fetch_sheet(gid), "live Google Sheet"
             try:
                 with open(cache, "w", encoding="utf-8") as f: f.write(text)
             except OSError:
                 pass
         except Exception as e:
-            errs.append(f"{title}: {type(e).__name__}: {e}"[:150])
+            if live: errs.append(f"{title}: {type(e).__name__}: {e}"[:150])
             text, src = None, ""
             for p, k in ((cache, "last saved copy"), (DARK_SNAPSHOTS.get(gid, ""), "built-in copy")):
                 if p and _snap(p): text, src = _snap(p), k; break
@@ -332,14 +333,28 @@ def view(d, mode):
     return W, E
 
 # ── translation ───────────────────────────────────────────────────────────
+_IRR_VERBS = ("went:go gone:go ate:eat eaten:eat saw:see seen:see took:take taken:take gave:give given:give came:come made:make "
+    "knew:know known:know said:say got:get gotten:get ran:run wrote:write written:write fought:fight slept:sleep fell:fall fallen:fall "
+    "found:find held:hold led:lead left:leave lost:lose met:meet sang:sing sung:sing spoke:speak spoken:speak stood:stand told:tell "
+    "thought:think wore:wear worn:wear won:win began:begin begun:begin became:become brought:bring built:build bought:buy caught:catch "
+    "chose:choose chosen:choose drew:draw drawn:draw drank:drink drunk:drink drove:drive driven:drive fed:feed felt:feel flew:fly flown:fly "
+    "forgot:forget froze:freeze grew:grow grown:grow hid:hide hidden:hide heard:hear kept:keep rode:ride ridden:ride risen:rise sold:sell "
+    "sent:send shook:shake shot:shoot sat:sit slid:slide spent:spend swam:swim taught:teach threw:throw thrown:throw woke:wake "
+    "understood:understand struck:strike stole:steal stolen:steal broke:break broken:break burnt:burn bled:bleed blew:blow blown:blow "
+    "dug:dig slew:slay slain:slay swore:swear sworn:swear sank:sink sunk:sink")
+_IRR_NOUNS = ("children:child men:man women:woman people:person feet:foot teeth:tooth mice:mouse geese:goose wolves:wolf elves:elf "
+    "dwarves:dwarf knives:knife lives:life leaves:leaf halves:half shelves:shelf thieves:thief wives:wife selves:self oxen:ox")
+IRREGULAR = {**{a.split(":")[0]: (a.split(":")[1], "ed") for a in _IRR_VERBS.split()},
+             **{a.split(":")[0]: (a.split(":")[1], "s") for a in _IRR_NOUNS.split()}}   # irregular past/participle and plural forms
+
 def variants(w):
     """Possible base forms of an English word, with what the ending was ('s', 'ing', 'ed', 'ly')."""
-    out = []
+    out = [IRREGULAR[w]] if w in IRREGULAR else []
     if w.endswith("ies") and len(w) > 4: out.append((w[:-3] + "y", "s"))
     if w.endswith("es") and len(w) > 3: out.append((w[:-2], "s"))
     if w.endswith("s") and len(w) > 3 and not w.endswith("ss"): out.append((w[:-1], "s"))
     for suf in ("ing", "ed"):
-        if w.endswith(suf) and len(w) > len(suf) + 2:
+        if w.endswith(suf) and len(w) > len(suf) + (1 if suf == "ing" else 2):
             b = w[:-len(suf)]
             out += [(b, suf), (b + "e", suf)] + ([(b[:-1], suf)] if len(b) > 2 and b[-1] == b[-2] else [])
     if w.endswith("ly") and len(w) > 4: out.append((w[:-2], "ly"))
@@ -551,6 +566,25 @@ def build_line(speaker, english, mode=MODES[0], fmt=LINE_FORMATS[0], note=False,
     if (emote or "").strip(): line = f"*{emote.strip()}* " + line
     return line + (f" ({english.strip()})" if note else "")
 
+def import_dictionary(path):
+    """Use a downloaded copy of the Dictionary tab (File > Download > CSV) when the live download is blocked."""
+    if not path: return "Choose the CSV file first.", status_md(load())
+    try:
+        with open(getattr(path, "name", path), encoding="utf-8-sig", errors="replace") as f: text = f.read()
+    except OSError as e:
+        return f"Could not read the file: {e}", status_md(load())
+    head = text.split("\n", 1)[0].lower()
+    if "common" not in head or "vel" not in head:
+        return "That doesn't look like the Dictionary tab (its first row should have Common and Vel'luah columns).", status_md(load())
+    gid = next(g for t, g, k in DARK_TABS if k == "dict")
+    try:
+        with open(os.path.join(HERE, f"maparonnarn_dark_{gid}.csv"), "w", encoding="utf-8") as f: f.write(text)
+    except OSError as e:
+        return f"Could not save the file: {e}", status_md(load())
+    d = load(); d.update(load_dark(live=False))
+    n = sum(1 for e in d["DW"].values() if "Dictionary" in e["sec"])
+    return f"Imported. {n} Dictionary words loaded (kept for next time).", status_md(d)
+
 def get_saved():
     return _read(SAVED_FILE) if os.path.exists(SAVED_FILE) else ""
 
@@ -692,6 +726,11 @@ with gr.Blocks(title="Maparonnarn · Fennic Elven") as demo:
     gr.Markdown("# Maparonnarn · Fennic Elven (Snow Elf dialect)")
     status = gr.Markdown()
     sync_btn = gr.Button("🔄 Sync from Google Doc")
+    with gr.Accordion("Dark Elf Dictionary didn't load? Import it from a file", open=False):
+        gr.Markdown("In the Vel'luah sheet, open the **Dictionary** tab, choose **File → Download → Comma-separated values (.csv)**, then upload that file here.")
+        dict_file = gr.File(label="Dictionary tab as CSV", file_types=[".csv"], type="filepath")
+        dict_btn = gr.Button("Import")
+        dict_msg = gr.Markdown()
     mode = gr.CheckboxGroup(MODES, value=[MODES[0]], label="Dialects: tick one, or two or three to mix them (Snow Elf wins, then Dark Elf, then wiki)")
     with gr.Tabs():
         with gr.Tab("Translate"):
@@ -776,6 +815,7 @@ with gr.Blocks(title="Maparonnarn · Fennic Elven") as demo:
     f_btn.click(to_english, [f_in, mode], f_out, api_name=False); f_in.submit(to_english, [f_in, mode], f_out, api_name=False)
     q_btn.click(search, [q, mode], q_out, api_name=False); q.submit(search, [q, mode], q_out, api_name=False)
     n_btn.click(number, [n_in, mode], n_out, api_name=False); n_in.submit(number, [n_in, mode], n_out, api_name=False)
+    dict_btn.click(import_dictionary, dict_file, [dict_msg, status], api_name=False)
     lb_args = [lb_name, lb_in, mode, lb_fmt, lb_note, lb_emote, sov]
     lb_btn.click(build_line, lb_args, lb_out, api_name=False); lb_in.submit(build_line, lb_args, lb_out, api_name=False)
     lb_save.click(add_saved, lb_out, [lb_msg, sv_box], api_name=False)
