@@ -26,6 +26,9 @@ DOC_URL = f"https://docs.google.com/document/d/{DOC_ID}/export?format=txt"
 HERE = os.path.dirname(os.path.abspath(__file__))
 CACHE = os.path.join(HERE, "maparonnarn_cache.txt")        # last successful live copy
 SNAPSHOT = os.path.join(HERE, "maparonnarn_snapshot.txt")  # bundled copy, used if offline
+SHEET_ID = "1VRkqLhSXYRvWEFtWNwlprYyNJtJmznOuwXMPXMeaVDM"   # Vel'luah sheet, shared "anyone with the link"
+DARK_TABS = [("Special Words", "1721718391")]   # (title, gid). Add ("Dictionary", "<its gid>") here for more tabs
+DARK_SNAPSHOT = os.path.join(HERE, "maparonnarn_dark_snapshot.csv")   # bundled copy of the first tab
 WIKI = os.path.join(HERE, "maparonnarn_wiki_snapshot.txt")  # bundled Common Elven wiki list (static)
 TTL = 300                                                  # seconds between automatic re-syncs
 
@@ -49,8 +52,10 @@ def norm(s):
     return re.sub(r"[’‘'`\-]", "", s).strip()
 
 def clean_def(m):
+    if " — " in m: return m.split(" — ")[0].strip()   # dark elf entries: "direct translation — explanation"
     m = re.sub(r"\(.*?\)", "", m)
-    return re.split(r"\bLit\b\.?", m, 1, flags=re.I)[0].strip(" .,;/") or m.strip()
+    m = re.split(r"\bLit\b\.?", m, 1, flags=re.I)[0].strip(" .,;/") or m.strip()
+    return re.split(r"[.;:] ", m, 1)[0] if len(m) > 60 else m
 
 def en_keys(meaning):
     m = re.sub(r"\(.*?\)", "", meaning)
@@ -62,7 +67,7 @@ def en_keys(meaning):
     return keys
 
 def _adder(W, E):
-    def add(form, meaning, label):
+    def add(form, meaning, label, index=None):
         form = form.strip().strip(".!?, ")
         meaning = meaning.strip()
         if not form or not meaning: return
@@ -71,7 +76,7 @@ def _adder(W, E):
         if not k: return
         e = W.setdefault(k, {"form": form, "defs": [], "sec": label})
         if meaning not in e["defs"]: e["defs"].append(meaning)
-        for key in en_keys(meaning):
+        for key in (en_keys(meaning) if index is None else index):
             lst = E.setdefault(key, [])
             if form not in lst: lst.append(form)
     return add
@@ -86,6 +91,62 @@ def parse_wiki(text):
         if ": " in line:
             form, meaning = line.split(": ", 1); add(form, meaning, label)
     return {"WW": W, "WE": E}
+
+NUMS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"]
+
+def parse_dark(sources):
+    """Vel'luah sheet tabs as CSV: A word, B meaning, C direct translation, F/G numeral or suffix."""
+    import csv, io
+    W, E, P, N, A = {}, {}, [], {}, []
+    add = _adder(W, E)
+    for title, text in sources:
+        label = "Dark Elf: " + title
+        for i, row in enumerate(csv.reader(io.StringIO(text))):
+            if i == 0: continue
+            form, mean, direct, num, nw = ((row + [""] * 8)[j].strip() for j in (0, 1, 2, 5, 6))
+            if num and nw:
+                if num.isdigit():
+                    N[int(num)] = nw
+                    if int(num) < len(NUMS): add(nw, f"number {num}", "Dark Elf: numerals", index=[NUMS[int(num)]])
+                else: A.append((nw, f"suffix for {num}"))
+            if not form: continue
+            ok = bool(direct) and direct.upper() != "N/A"
+            meaning = f"{direct} — {mean}" if ok else mean
+            keys = en_keys(direct) if ok and not re.search(r"insult|derogatory", mean, re.I) else []
+            for f in re.split(r"\s*/\s*|\s*\|\s*", form):
+                g = re.search(r"\((fem|masc)\)", f)
+                f = re.sub(r"\s*\((fem|masc)\)", "", f).strip()
+                m = f"({g.group(1)}) {meaning}" if g else meaning
+                if not f: continue
+                if " " in f: P.append((f, m, label))
+                else: add(f, m, label, index=keys)
+    return {"DW": W, "DE": E, "DP": P, "DN": N, "DA": A}
+
+def fetch_sheet(gid, timeout=15):
+    url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={gid}"
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        text = r.read().decode("utf-8-sig", "replace")
+    if text.lstrip()[:15].lower().startswith(("<!doctype", "<html")):
+        raise ValueError("Google returned a web page, not the sheet (is it shared as 'anyone with the link'?)")
+    return text
+
+def load_dark():
+    sources, kinds = [], set()
+    for n, (title, gid) in enumerate(DARK_TABS):
+        cache = os.path.join(HERE, f"maparonnarn_dark_{gid}.csv")
+        try:
+            text, kind = fetch_sheet(gid), "live Google Sheet"
+            try:
+                with open(cache, "w", encoding="utf-8") as f: f.write(text)
+            except OSError:
+                pass
+        except Exception:
+            text, kind = None, ""
+            for p, k in ((cache, "last saved copy"), (DARK_SNAPSHOT if n == 0 else "", "bundled snapshot")):
+                if p and os.path.exists(p): text, kind = _read(p), k; break
+        if text: sources.append((title, text)); kinds.add(kind)
+    return dict(parse_dark(sources), dsrc=" + ".join(sorted(kinds)) or "none")
 
 def parse(text):
     W, E, P, N, A, G = {}, {}, [], {}, [], []
@@ -167,48 +228,52 @@ def load(force=False):
             if text is None: text, src = "", "nothing (offline and no snapshot)"
         _DB = parse(text)
         _DB.update(parse_wiki(_read(WIKI)) if os.path.exists(WIKI) else {"WW": {}, "WE": {}})
+        _DB.update(load_dark())
         _DB.update(src=src, err=err, t=time.time(), stamp=time.strftime("%Y-%m-%d %H:%M"))
         return _DB
 
 def status_md(d):
-    s = f"**Source:** {d['src']} · synced {d['stamp']} · **{len(d['W'])}** words · **{len(d['P'])}** phrases · numbers {len(d['N'])}/100 · wiki list: **{len(d['WW'])}** words (bundled)"
+    s = f"**Source:** {d['src']} · synced {d['stamp']} · **{len(d['W'])}** words · **{len(d['P'])}** phrases · numbers {len(d['N'])}/100 · wiki list: **{len(d['WW'])}** words (bundled) · dark elf: **{len(d['DW'])}** words, **{len(d['DP'])}** phrases ({d['dsrc']})"
     if d.get("err"): s += f"\n\n⚠️ Live sync failed ({d['err']}). Still showing the {d['src']} from {d['stamp']}."
     return s
 
-MODES = ["Snow Elf (doc)", "Common Elven (wiki)", "Mixed"]
+MODES = ["Snow Elf (doc)", "Common Elven (wiki)", "Dark Elf (Vel'luah)", "Mixed (all)"]
 
 def view(d, mode):
-    """Words/English index for the chosen dialect. Mixed = Snow Elf first, wiki fills gaps."""
+    """Words/English index for the chosen dialect. Mixed = Snow Elf first, then Dark Elf, then wiki."""
     if mode == MODES[1]: return d["WW"], d["WE"]
-    if mode != MODES[2]: return d["W"], d["E"]
+    if mode == MODES[2]: return d["DW"], d["DE"]
+    if mode != MODES[3]: return d["W"], d["E"]
     W = {k: dict(e, defs=list(e["defs"])) for k, e in d["W"].items()}
-    for k, e in d["WW"].items():
-        if k in W: W[k]["defs"] += ["(wiki) " + x for x in e["defs"]]
-        else: W[k] = e
     E = {k: list(v) for k, v in d["E"].items()}
-    for k, v in d["WE"].items():
-        lst = E.setdefault(k, [])
-        lst += [f for f in v if f not in lst]
+    for tag, wk, ek in (("dark", "DW", "DE"), ("wiki", "WW", "WE")):
+        for k, e in d[wk].items():
+            if k in W: W[k]["defs"] += [f"({tag}) " + x for x in e["defs"]]
+            else: W[k] = dict(e, defs=list(e["defs"]))
+        for k, v in d[ek].items():
+            lst = E.setdefault(k, [])
+            lst += [f for f in v if f not in lst]
     return W, E
 
 # ── translation ───────────────────────────────────────────────────────────
 def to_fennic(text, mode=MODES[0]):
     d, out, notes, tense = load(), [], [], None
     _, E = view(d, mode)
+    snow = mode in (MODES[0], MODES[3])   # tense ia, plural 'len and possessive au' are Snow Elf grammar
     toks = re.findall(r"[A-Za-z][A-Za-z'’]*", text or "")
     i = 0
     while i < len(toks):
         raw = toks[i]; w = raw.lower().replace("’", "'"); i += 1
-        if w in PAST: tense = "past"; continue
-        if w in FUT: tense = "future"; continue
-        if w == "going" and i < len(toks) and toks[i].lower() == "to": tense = "future"; i += 1; continue
-        if w in STOP: continue
-        poss = w.endswith("'s")
+        if snow and w in PAST: tense = "past"; continue
+        if snow and w in FUT: tense = "future"; continue
+        if snow and w == "going" and i < len(toks) and toks[i].lower() == "to": tense = "future"; i += 1; continue
+        if snow and w in STOP: continue
+        poss = snow and w.endswith("'s")
         if poss: w = w[:-2]
         plural = False
         c = E.get(ALIAS.get(w, w))
         if not c and w in ("i", "my"): c = E.get("me")   # wiki list only has "me"
-        if not c and w.endswith("s") and len(w) > 3:
+        if not c and snow and w.endswith("s") and len(w) > 3:
             c = E.get(w[:-1]); plural = bool(c)
         if c:
             f = c[0]
@@ -225,13 +290,13 @@ def to_fennic(text, mode=MODES[0]):
     return f"### {' '.join(out)}\n\nWord order is as typed; the doc's order is Subject, Object, Verb.\n\n" + "\n".join(notes)
 
 # ── pick-which-words mode (roleplay: translate only a few words, keep the rest as typed) ──
-def lookup_en(raw, E):
+def lookup_en(raw, E, affixes=True):
     """English word -> (Fennic form or None); handles plural 's, possessive 's and I/my."""
     w = raw.lower().replace("’", "'")
-    poss = w.endswith("'s")
+    poss = affixes and w.endswith("'s")
     if poss: w = w[:-2]
     c, plural = E.get(ALIAS.get(w, w)), False
-    if not c and w.endswith("s") and len(w) > 3:
+    if not c and affixes and w.endswith("s") and len(w) > 3:
         c = E.get(w[:-1]); plural = bool(c)
     if not c and w in ("i", "my"): c = E.get("me")
     if not c: return None
@@ -240,25 +305,27 @@ def lookup_en(raw, E):
 
 def word_options(text, mode=MODES[0]):
     _, E = view(load(), mode)
+    aff = mode in (MODES[0], MODES[3])
     seen, choices = set(), []
     for raw in re.findall(r"[A-Za-z][A-Za-z'’]*", text or ""):
-        w, f = raw.lower().replace("’", "'"), lookup_en(raw, E)
+        w, f = raw.lower().replace("’", "'"), lookup_en(raw, E, aff)
         if f and w not in seen:
             seen.add(w); choices.append((f"{raw} → {f}", w))
     return gr.update(choices=choices, value=[])
 
 def partial(text, picks, mode=MODES[0]):
     _, E = view(load(), mode)
+    aff = mode in (MODES[0], MODES[3])
     picks = set(picks or [])
     def sub(m):
         raw = m.group(0)
-        return (lookup_en(raw, E) or raw) if raw.lower().replace("’", "'") in picks else raw
+        return (lookup_en(raw, E, aff) or raw) if raw.lower().replace("’", "'") in picks else raw
     return re.sub(r"[A-Za-z][A-Za-z'’]*", sub, text or "")
 
 def gloss_word(W, base, split=True):
     e = W.get(norm(base))
     if e: return clean_def(e["defs"][0]), "; ".join(e["defs"])
-    parts = [p for p in re.split(r"[’‘']", base) if p]
+    parts = [p for p in re.split(r"[’‘'\-]", base) if p]
     if split and len(parts) > 1:
         es = [W.get(norm(p)) for p in parts]
         if any(es): return " + ".join(clean_def(x["defs"][0]) if x else "?" for x in es), ""
@@ -309,10 +376,13 @@ def search(q, mode=MODES[0]):
 def browse(kind, flt, mode=MODES[0]):
     d, f = load(), (flt or "").lower()
     W, _ = view(d, mode)
-    if mode == MODES[1] and kind != "Words": return []
-    if kind == "Phrases": rows = [list(r) for r in d["P"]]
-    elif kind == "Numbers": rows = [[w, str(n), "Counting"] for n, w in sorted(d["N"].items())]
-    elif kind == "Affixes": rows = [[a, b, "Prefix/Suffix"] for a, b in d["A"]]
+    sn, dk = mode in (MODES[0], MODES[3]), mode in (MODES[2], MODES[3])
+    if kind == "Phrases":
+        rows = ([list(r) for r in d["P"]] if sn else []) + ([list(r) for r in d["DP"]] if dk else [])
+    elif kind == "Numbers":
+        rows = ([[w, str(n), "Counting"] for n, w in sorted(d["N"].items())] if sn else []) + ([[w, str(n), "Vel'luah numerals"] for n, w in sorted(d["DN"].items())] if dk else [])
+    elif kind == "Affixes":
+        rows = ([[a, b, "Prefix/Suffix"] for a, b in d["A"]] if sn else []) + ([[a, b, "Vel'luah suffixes"] for a, b in d["DA"]] if dk else [])
     else: rows = [[e["form"], "; ".join(e["defs"]), e["sec"]] for e in sorted(W.values(), key=lambda e: norm(e["form"]))]
     if f: rows = [r for r in rows if f in " ".join(r).lower()]
     return rows[:1000]
@@ -341,7 +411,7 @@ with gr.Blocks(title="Maparonnarn · Fennic Elven") as demo:
     gr.Markdown("# Maparonnarn · Fennic Elven (Snow Elf dialect)")
     status = gr.Markdown()
     sync_btn = gr.Button("🔄 Sync from Google Doc")
-    mode = gr.Radio(MODES, value=MODES[0], label="Dialect (Mixed = Snow Elf first, wiki fills the gaps)")
+    mode = gr.Radio(MODES, value=MODES[0], label="Dialect (Mixed = Snow Elf first, then Dark Elf, then wiki)")
     with gr.Tabs():
         with gr.Tab("Translate"):
             e_in = gr.Textbox(label="English → Fennic", placeholder="I was cold")
