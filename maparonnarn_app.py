@@ -167,10 +167,20 @@ def save_mine(text):
     d = load(); d.update(load_mine())
     return f"Saved. {len(d['MW'])} word(s) in your list."
 
-def to_script(text):
-    L = load()["DL"]
-    if not L: return "No letter table loaded (is the Dark Elf sheet reachable?)."
-    return "".join(L.get(c.lower(), c) for c in (text or ""))
+# The 19 letters from the sheet's Grammar tab, built in so the script tab works even if the sheet can't be reached
+DEFAULT_LETTERS = dict(zip("mztubgelkdyraxvhons", "ɱչȶʊɮɠɛʅӄðψᵲα" "ᛪʋɦ¤ռʂ"))
+
+def to_script(text, translate=True):
+    """Latin letters -> Vel'luah script. With translate on, English is put into Vel'luah (Dark Elf dictionary) first."""
+    L = {**DEFAULT_LETTERS, **load().get("DL", {})}
+    conv = lambda t: "".join(L.get(c.lower(), c) for c in t)
+    if not translate: return conv(text or "")
+    res = to_fennic(text, [DARK])
+    if res.startswith("Type"): return ""
+    latin = res.split("\n")[0].replace("### ", "", 1)
+    kept = {k.lower() for k in re.findall(r"\*\*(.+?)\*\*: not in the dictionary", res)}   # words with no Vel'luah entry stay in Latin letters
+    script = re.sub(r"\S+", lambda m: m.group(0) if m.group(0).lower().strip(".,;:!?") in kept else conv(m.group(0)), latin)
+    return f"{latin}\n{script}"
 
 def fetch_sheet(gid, timeout=15):
     url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={gid}"
@@ -560,9 +570,10 @@ with gr.Blocks(title="Maparonnarn · Fennic Elven") as demo:
             mine_btn = gr.Button("Save my words")
             mine_msg = gr.Markdown()
         with gr.Tab("Vel'luah script"):
-            sc_in = gr.Textbox(label="Dark Elf word or sentence (Latin letters)", placeholder="Vraz")
-            sc_out = gr.Textbox(label="Script", interactive=False, show_copy_button=True)
-            gr.Markdown("Letters the sheet has no glyph for stay as typed.")
+            sc_in = gr.Textbox(label="English, or Vel'luah in Latin letters", placeholder="good thanks")
+            sc_tr = gr.Checkbox(label="Translate from English first (Dark Elf dictionary)", value=True)
+            sc_out = gr.Textbox(label="Vel'luah (Latin) and script", lines=2, interactive=False, show_copy_button=True)
+            gr.Markdown("With translation on, the first line is the Vel'luah and the second is the script. Words the dictionary doesn't have stay in English letters. Letters with no glyph stay as typed.")
         with gr.Tab("Grammar"):
             gram = gr.Textbox(label="Grammar notes (follow the dialects ticked above)", lines=28, interactive=False)
     outs = [status, table, gram]
@@ -577,7 +588,8 @@ with gr.Blocks(title="Maparonnarn · Fennic Elven") as demo:
     style.change(partial, [e_in, pick, mode, style], p_out, api_name=False)
     mine_btn.click(save_mine, mine, mine_msg, api_name=False)
     demo.load(get_mine, None, mine, api_name=False)
-    sc_in.change(to_script, sc_in, sc_out, api_name=False)
+    sc_in.change(to_script, [sc_in, sc_tr], sc_out, api_name=False)
+    sc_tr.change(to_script, [sc_in, sc_tr], sc_out, api_name=False)
     f_btn.click(to_english, [f_in, mode], f_out, api_name=False); f_in.submit(to_english, [f_in, mode], f_out, api_name=False)
     q_btn.click(search, [q, mode], q_out, api_name=False); q.submit(search, [q, mode], q_out, api_name=False)
     n_btn.click(number, [n_in, mode], n_out, api_name=False); n_in.submit(number, [n_in, mode], n_out, api_name=False)

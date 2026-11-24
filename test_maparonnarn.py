@@ -35,7 +35,12 @@ check("unknown words stay English", first("quixotic zebra", [S]) == "### quixoti
 check("pick-words keeps punctuation", m.partial("It is cold, friend.", ["cold"], [S]) == "It is Burim, friend.")
 check("pick-words styles", m.partial("cold", ["cold"], [S], "Italics") == "*Burim*" and m.partial("cold", ["cold"], [S], "With English in brackets") == "Burim (cold)")
 check("overlap view has rows", len(m.browse("Overlaps", "", [S, W])) > 0)
-check("script maps known letters", m.to_script("Vraz") == "ʋᵲαչ", m.to_script("Vraz"))
+check("script maps known letters", m.to_script("Vraz", False) == "ʋᵲαչ", m.to_script("Vraz", False))
+_saved = m._DB; m._DB = dict(_saved, DL={}, t=__import__("time").time() + 1e6)
+check("script works with no sheet letter table (built-in letters)", m.to_script("Vraz", False) == "ʋᵲαչ", m.to_script("Vraz", False))
+m._DB = _saved
+check("script tab translates English first", m.to_script("good").split("\n") == ["Vraz", "ʋᵲαչ"], m.to_script("good"))
+check("unknown English words stay in Latin letters", m.to_script("good zebra").split("\n")[1] == "ʋᵲαչ zebra", m.to_script("good zebra"))
 m.save_mine("Zorbak = cold")
 check("my words win", "Zorbak" in first("cold", [S, W, D]), first("cold", [S, W, D]))
 check("fennic to english decodes snow affixes", "past" in m.to_english("Ia’Ayred ehyubor", [S]))
