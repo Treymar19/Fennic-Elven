@@ -72,7 +72,7 @@ check("tabs list includes the dictionary", any(k == "dict" for _, _, k in m.DARK
 # Dark Elf grammar tab, per-language grammar text, numbers, Vel'luah grammar in the translator
 check("dark grammar tab loaded", "Plural is denoted" in d["DG"] and "Numbers:" in d["DG"], len(d["DG"]))
 g1, g2, g3 = m.grammar_text(d, [S]), m.grammar_text(d, [D]), m.grammar_text(d, [W])
-check("grammar text follows the ticked language", "Snow Elf" in g1 and "Vel’luah" not in g1 and "Plural is denoted" in g2 and "Snow Elf (doc) ══" not in g2 and "No grammar notes" in g3)
+check("grammar text follows the ticked language", "Snow Elf" in g1 and "Vel’luah" not in g1 and "Plural is denoted" in g2 and "Snow Elf (doc) ══" not in g2 and "affix list" in g3)
 check("grammar text for two languages has both", "══ Snow Elf" in m.grammar_text(d, [S, D]) and "══ Dark Elf" in m.grammar_text(d, [S, D]))
 check("vel'luah 99 = bexah-bex", m.dark_number(99, d) == "bexah-bex", m.dark_number(99, d))
 check("vel'luah 1203 = azhe-nytee-hek (no zero place)", m.dark_number(1203, d) == "azhe-nytee-hek", m.dark_number(1203, d))
@@ -132,6 +132,49 @@ check("endings: going / running / making", ("go", "ing") in m.variants("going") 
 check("irregular forms: went / children", ("go", "ed") in m.variants("went") and ("child", "s") in m.variants("children"))
 check("irregular: wiki 'went' finds 'go'", first("went", [W]) == first("go", [W]) and first("went", [W]) != "### went", first("went", [W]))
 check("irregular: dark 'went' finds 'go'", first("went", [D]) == "### Ukh", first("went", [D]))
+# ── language fidelity: the parse matches the sources, and the languages don't leak into each other ──
+check("snow: 'Fae/Fay' is two words", "fae" in d["W"] and "fay" in d["W"])
+check("snow: 'Ibheir - wind' is read", "ibheir" in d["W"] and "wind" in d["W"]["ibheir"]["defs"][0].lower())
+check("snow: two-word race name kept as a phrase", any(p[0].startswith("Igne’aethurr abopelu") for p in d["P"]))
+check("dark: Urve / Vule / Lyle each have their own meaning", d["DW"]["urve"]["defs"][0].startswith("Sir") and d["DW"]["vule"]["defs"][0].startswith("Ma’am") and "neutral" in d["DW"]["lyle"]["defs"][0].lower())
+check("dark: 'sir' finds Urve", d["DE"].get("sir") == ["Urve"], d["DE"].get("sir"))
+langs_in = lambda sel: {m.lang_of(e["sec"]) for e in m.view(d, sel)[0].values()}
+check("each single-dialect view holds only its own language", langs_in([S]) <= {"snow", "mine"} and langs_in([W]) <= {"wiki", "mine"} and langs_in([D]) <= {"dark", "mine"}, (langs_in([S]), langs_in([W]), langs_in([D])))
+only = {"snow": set(d["W"]) - set(d["DW"]) - set(d["WW"]), "wiki": set(d["WW"]) - set(d["W"]) - set(d["DW"]), "dark": set(d["DW"]) - set(d["W"]) - set(d["WW"])}
+sentence = "good dwarf with sword thanks, I walk and see the cold forest"
+leaks = {n: [t for t in first(sentence, [sel]).replace("### ", "").split() if m.norm(t) in {k for o, ks in only.items() if o != n for k in ks}] for n, sel in (("snow", S), ("wiki", W), ("dark", D))}
+check("translations never contain another language's words", not any(leaks.values()), leaks)
+check("snow: the doc's own number example (100,000,000)", m.snow_number(100000000, d) == "Om’karr, Nul’elam, Nul’ilk, Nul’firr, Nul", m.snow_number(100000000, d))
+mx = [("Prefixes", []), ("Suffixes", []), ("Verbs", [("To hate", "adry")]), ("Nouns", [("Moonblade", "velkor")])]   # a Vel'luah noun Snow Elf doesn't have
+gx = [[] for _ in range(2)]
+for ci, (_, items) in enumerate(mx):
+    for r in range(2):
+        gx[r] += list(("Common", "Vel'luah") if r == 0 else (items[0] if items else ("", ""))) + ([""] if ci < len(mx) - 1 else [])
+bx = io.StringIO(); csv.writer(bx).writerows(gx)
+_saved = m._DB
+m._DB = dict(_saved, **m.parse_dark([("Dictionary", "dict", bx.getvalue())]), t=time.time() + 1e6)
+mixed = first("the horses and the moonblades", [S, D])
+check("mixed: Snow word gets 'len, Vel'luah word gets -zh and its article", mixed == "### Per’len Mir velkorzhel", mixed)
+check("mixed: Vel'luah verb keeps a’, Snow subject keeps ia", first("I hated horses", [S, D]) == "### Kai a’adry Per’len" and first("I did hate", [S, D]) == "### Ia’Kai a’adry", (first("I hated horses", [S, D]), first("I did hate", [S, D])))
+_full = m.to_fennic("moonblades did hate", [S, D])
+check("mixed: Snow tense mark skipped when the first word is Vel'luah", _full.split("\n")[0] == "### velkorzh a’adry" and "tense mark skipped" in _full, _full.split("\n")[0])
+check("pick-words: Snow endings only on Snow words", m.partial("horses moonblades", ["horses", "moonblades"], [S, D]) == "Per’len velkor", m.partial("horses moonblades", ["horses", "moonblades"], [S, D]))
+m._DB = _saved
+check("wiki: 'ley' (grace, beauty) and 'ilmyumier' (tattoo) are present", "ley" in d["WW"] and "ilmyumier" in d["WW"] and "grace" in d["WW"]["ley"]["defs"][0])
+check("wiki: affixes are listed, not looked up as words", len(d["WA"]) >= 35 and any(a_.startswith("-ne") for a_, _ in d["WA"]) and "ael" not in d["WW"], len(d["WA"]))
+check("wiki: grammar text shows the affixes", "Honorific for an accursed" in m.grammar_text(d, [W]))
+check("wiki: affixes appear in Browse", len(m.browse("Affixes", "", [W])) >= 35)
+check("wiki list is complete enough (>=860 words)", len(d["WW"]) >= 860, len(d["WW"]))
+check("dark: the sheet's exact wording is kept (Bolso, Vule)", d["DW"]["bolso"]["defs"][0].startswith("cat — Literally meaning") and d["DW"]["vule"]["defs"][0].startswith("Ma’am. This is a respectful form"), d["DW"]["vule"]["defs"][0][:50])
+check("dark: ma'am finds Vule (typographic apostrophe in the sheet)", first("ma'am", [D]) == "### Vule", first("ma'am", [D]))
+_stale = os.path.join(here, "maparonnarn_wiki_snapshot.txt")
+_orig = open(_stale, encoding="utf-8").read() if os.path.exists(_stale) else None
+open(_stale, "w", encoding="utf-8").write("## Seed words\nold: stale file\n")
+try: _w = m.parse_wiki(m._snap(m.WIKI_FILE))["WW"]
+finally:
+    if _orig is None: os.remove(_stale)
+    else: open(_stale, "w", encoding="utf-8").write(_orig)
+check("an old snapshot file next to the app cannot override the built-in data", "old" not in _w and "ley" in _w and len(_w) >= 860, len(_w))
 # importing a downloaded Dictionary CSV (uses the sample dictionary built above, written to a temp folder)
 m.HERE = tempfile.mkdtemp()
 _up = os.path.join(m.HERE, "upload.csv"); open(_up, "w", encoding="utf-8").write(buf.getvalue())
