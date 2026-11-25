@@ -18,7 +18,7 @@ try:
 except Exception:
     pass
 
-import os, re, time, json, random, threading, unicodedata, urllib.request, difflib
+import os, re, time, json, random, tempfile, threading, unicodedata, urllib.request, difflib
 import gradio as gr
 
 DOC_ID = "1W-116l4867x-l49Sjh8Wsox5y-SXZ2Zsz_Pw302d_DM"   # doc must be shared "anyone with the link"
@@ -29,7 +29,8 @@ SNAPSHOT = os.path.join(HERE, "maparonnarn_snapshot.txt")  # bundled copy, used 
 SHEET_ID = "1VRkqLhSXYRvWEFtWNwlprYyNJtJmznOuwXMPXMeaVDM"   # Vel'luah sheet, shared "anyone with the link"
 DARK_TABS = [("Special Words", "1721718391", "words"), ("Dictionary", "0", "dict"), ("Grammar", "1887383092", "grammar")]   # (title, gid, layout); add the Grammar tab's gid here if wanted
 DARK_SNAPSHOT = os.path.join(HERE, "maparonnarn_dark_snapshot.csv")   # bundled copy of the Special Words tab
-DARK_SNAPSHOTS = {"1721718391": DARK_SNAPSHOT, "1887383092": os.path.join(HERE, "maparonnarn_dark_grammar_snapshot.csv")}   # the Dictionary tab has none: it is live only
+DARK_SNAPSHOTS = {"1721718391": DARK_SNAPSHOT, "1887383092": os.path.join(HERE, "maparonnarn_dark_grammar_snapshot.csv"),
+                  "0": os.path.join(HERE, "maparonnarn_dark_dictionary_snapshot.csv")}   # Dictionary: only its prefix and suffix lists are built in
 SAVED_FILE = os.path.join(HERE, "saved_lines.txt")   # lines you save from the line builder
 MY_FILE = os.path.join(HERE, "my_words.txt")   # your own words: "Fennic = English", one per line
 WIKI_FILE = os.path.join(HERE, "maparonnarn_wiki_snapshot.txt")  # bundled Common Elven wiki list (static)
@@ -318,7 +319,7 @@ def load(force=False):
 
 def status_md(d):
     s = f"**Source:** {d['src']} · synced {d['stamp']} · **{len(d['W'])}** words · **{len(d['P'])}** phrases · numbers {len(d['N'])}/100 · wiki list: **{len(d['WW'])}** words (bundled) · dark elf: **{len(d['DW'])}** words, **{len(d['DP'])}** phrases ({d['dsrc']}) · my words: **{len(d['MW'])}**"
-    if d.get("derr"): s += f"\n\n⚠️ Dark Elf sheet could not be downloaded: {d['derr']}. Special Words and Grammar use the built-in copy; the Dictionary tab has no built-in copy, so its words are missing until the download works."
+    if d.get("derr"): s += f"\n\n⚠️ Dark Elf sheet could not be downloaded: {d['derr']}. Special Words, Grammar and the Dictionary's prefix and suffix lists use the built-in copy; the rest of the Dictionary is missing until the download works."
     if d.get("err"): s += f"\n\n⚠️ Live sync failed ({d['err']}). Still showing the {d['src']} from {d['stamp']}."
     return s
 
@@ -362,7 +363,17 @@ _IRR_NOUNS = ("children:child men:man women:woman people:person feet:foot teeth:
 IRREGULAR = {**{a.split(":")[0]: (a.split(":")[1], "ed") for a in _IRR_VERBS.split()},
              **{a.split(":")[0]: (a.split(":")[1], "s") for a in _IRR_NOUNS.split()}}   # irregular past/participle and plural forms
 
-def variants(w):
+# Prefix/suffix equivalents from the sheet's Dictionary tab. Only one-to-one rules are used: ambiguous ones
+# (-al, -ian, -tion/-sion, -en, -ate, -ify, in-, a-) are left out, and some need a noun or verb as the base.
+DARK_SUFFIXES = {"acy": "eth", "ance": "rax", "ence": "rax", "hood": "rax", "dom": "uk", "ist": "yr", "er": "yr", "or": "yr", "ism": "za",
+    "ness": "um", "ity": "um", "scape": "byo", "ship": "vot", "ful": "kon", "esque": "kon", "able": "uth", "ible": "uth", "ish": "yl",
+    "ic": "yl", "ous": "yl", "ious": "yl", "y": "ez", "ive": "yb", "less": "bea", "ling": "ye", "mancy": "ota", "ment": "unh", "ette": "ety"}
+DARK_SFX_BASE = {"er": "verb", "or": "verb", "y": "noun", "ful": "noun", "less": "noun", "able": "verb", "ible": "verb", "ive": "verb",
+    "ment": "verb", "ship": "noun", "dom": "noun", "hood": "noun", "ling": "noun", "ette": "noun", "mancy": "noun", "ish": "noun", "ic": "noun",
+    "ous": "noun", "ious": "noun"}   # what kind of word the English suffix attaches to ("agent -er" needs a verb, not "bigger")
+DARK_PREFIXES = {"ante": "luy", "anti": "uby", "auto": "shadar", "inter": "yl", "dis": "bar", "post": "mab", "micro": "yeo", "macro": "ulth", "sub": "mor", "mono": "az"}
+
+def variants(w, dk=False):
     """Possible base forms of an English word, with what the ending was ('s', 'ing', 'ed', 'ly')."""
     out = [IRREGULAR[w]] if w in IRREGULAR else []
     if w.endswith("ies") and len(w) > 4: out.append((w[:-3] + "y", "s"))
@@ -372,14 +383,23 @@ def variants(w):
         if w.endswith(suf) and len(w) > len(suf) + (1 if suf == "ing" else 2):
             b = w[:-len(suf)]
             out += [(b, suf), (b + "e", suf)] + ([(b[:-1], suf)] if len(b) > 2 and b[-1] == b[-2] else [])
+    if w.endswith("ily") and len(w) > 5: out.append((w[:-3] + "y", "ily"))
     if w.endswith("ly") and len(w) > 4: out.append((w[:-2], "ly"))
+    if dk:   # Vel'luah prefix and suffix rules (longest suffix first)
+        for sf in sorted(DARK_SUFFIXES, key=len, reverse=True):
+            if w.endswith(sf) and len(w) - len(sf) >= 3:
+                b = w[:-len(sf)]
+                cands = [b, b + "e"] + ([b[:-1] + "y"] if b.endswith("i") else []) + ([b[:-1]] if len(b) > 2 and b[-1] == b[-2] else [])
+                out += [(c, f"sfx:{sf}:{DARK_SUFFIXES[sf]}") for c in cands]
+        for pf, vel in DARK_PREFIXES.items():
+            if w.startswith(pf) and len(w) - len(pf) >= 3: out.append((w[len(pf):], f"pfx:{vel}"))
     return out
 
-def find_en(w, E):
+def find_en(w, E, dk=False):
     """English word -> (Fennic candidates, ending kind). Exact match first, then base forms (hates, hating, hated...)."""
     c = E.get(w) or E.get(ALIAS.get(w, w))
     if c: return c, None
-    for b, k in variants(w):
+    for b, k in variants(w, dk):
         c = E.get(b)
         if c: return c, k
     return None, None
@@ -437,29 +457,51 @@ def to_fennic(text, mode=MODES[0], sov=False):
             if w in DARK_FUT: pend_t = "e’"; continue
         poss = (snow or dark) and w.endswith("'s")
         if poss: w = w[:-2]
-        c, kind = find_en(w, E)
+        c, kind = find_en(w, E, dark)
         if not c and w in ("i", "my"): c = E.get("me")   # wiki list only has "me"
-        ent = W.get(norm(c[0]), {}) if c else {}
-        lang = lang_of(ent.get("sec", "")) if c else ("snow" if snow else "dark")   # unknown names follow the main language ticked
-        isverb = "Verbs" in ent.get("sec", "") or any(x.lower().startswith("to ") for x in ent.get("defs", []))
-        isnoun = "Nouns" in ent.get("sec", "")
+        def _info(cc):
+            en_ = W.get(norm(cc[0]), {}) if cc else {}
+            return (lang_of(en_.get("sec", "")) if cc else ("snow" if snow else "dark"),   # unknown names follow the main language ticked
+                    "Verbs" in en_.get("sec", "") or any(x.lower().startswith("to ") for x in en_.get("defs", [])),
+                    "Nouns" in en_.get("sec", ""))
+        lang, isverb, isnoun = _info(c)
+        if kind and kind[:4] in ("sfx:", "pfx:"):   # a Vel'luah prefix/suffix rule: only on a suitable Vel'luah base word
+            need = DARK_SFX_BASE.get(kind.split(":")[1]) if kind[:4] == "sfx:" else None
+            if not (lang == "dark" and dark and (need is None or (need == "verb" and isverb) or (need == "noun" and isnoun))):
+                c, kind = None, None; lang, isverb, isnoun = _info(None)
         if c:
             f = c[0]
             if len(c) > 1: notes.append(f"- **{raw}**: also {', '.join(c[1:6])}")
         else:
             f = raw[:-2] if poss else raw   # not in the chosen dictionary: left in English (without its 's)
-            if not raw[0].isupper(): notes.append(f"- **{raw}**: not in the dictionary, left in English")
+            if not raw[0].isupper():
+                sg = [f"{k_} → {E[k_][0]}" for k_ in difflib.get_close_matches(w, list(E), n=2, cutoff=0.78)] if len(w) >= 4 else []
+                notes.append(f"- **{raw}**: not in the dictionary, left in English" + (f" (did you mean: {', '.join(sg)}?)" if sg else ""))
         if kind == "s":                     # a plural noun, or a verb ending in -s
             if lang == "snow" and snow and not isverb: f += "’len"
             elif lang == "dark" and dark and isnoun: f = attach(f, "zh")
         elif kind == "ed":
             if lang == "snow" and snow: tense = "past"
             elif lang == "dark" and dark and isverb: pend_t = pend_t or "a’"
-        elif kind == "ing" and lang == "dark" and dark and isverb: f = attach(f, "ule")
+            elif lang == "dark" and dark and isnoun: f = attach(f, "hk")           # "-ed" makes a noun an adjective
+        elif kind == "ing" and lang == "dark" and dark: f = attach(f, "ule")      # "-ing (action of)"
+        elif kind == "ly" and lang == "dark" and dark: f = attach(f, "eb")        # "-ly"
+        elif kind == "ily" and lang == "dark" and dark: f = attach(f, "ebe")      # "-ily", adverbs from adjectives
+        elif kind and kind[:4] == "sfx:": f = attach(f, kind.split(":")[2])
+        elif kind and kind[:4] == "pfx:": f = kind.split(":")[1] + f
         if lang == "dark" and dark and pend_t and isverb: f, pend_t = pend_t + f, None
         if lang == "dark" and dark and pend_a and isnoun: f, pend_a = attach(f, pend_a), None
         if poss and lang == "dark": f = attach(f, "’uhn")
         elif poss and lang == "snow": f = "au’" + f
+        built = None   # forms made by a rule from the sheet, not looked up: say so
+        if dark and lang == "dark" and kind:
+            if kind == "ing": built = "-ule (“-ing”)"
+            elif kind == "ly": built = "-eb (“-ly”)"
+            elif kind == "ily": built = "-ebe (“-ily”)"
+            elif kind == "ed" and isnoun and not isverb: built = "-hk (“-ed” on a noun)"
+            elif kind[:4] == "sfx:": built = f"-{kind.split(':')[2]} (“-{kind.split(':')[1]}”)"
+            elif kind[:4] == "pfx:": built = f"{kind.split(':')[1]}- (a prefix rule)"
+        if built: notes.append(f"- **{raw}** → {f}: built by a rule from **{c[0]}** + {built}, not a dictionary word. Check it.")
         out.append(f); verbs.append(isverb); langs.append(lang if c else "name")
     if not out: return "Type an English sentence."
     items = list(zip(out, verbs, langs))
@@ -536,7 +578,9 @@ def gloss_token(W, tok):
         if b.lower().startswith("tr’"): flags.append("verb"); b = b[3:]
         g, allm = gloss_word(W, b, split=False)
     if g is None: g, allm = gloss_word(W, b)
-    if g is None: g, allm = b, "not in the dictionary, left as written"
+    if g is None:
+        sg = [f"{W[k_]['form']} = {clean_def(W[k_]['defs'][0])}" for k_ in difflib.get_close_matches(norm(b), list(W), n=2, cutoff=0.8)] if len(b) >= 3 else []
+        g, allm = b, "not in the dictionary, left as written" + (f" (did you mean: {', '.join(sg)}?)" if sg else "")
     return g, allm, flags
 
 TOKEN_RE = r"[^\s,;:!?()\[\]]+"
@@ -582,6 +626,67 @@ def partial_rev(text, picks, mode=MODES[0], style=STYLES[0]):
         g = gloss_token(W, core)[0]
         return {"Italics": f"*{g}*", "Bold": f"**{g}**", STYLES[3]: f"{g} ({core})"}.get(style, g) + tail
     return re.sub(TOKEN_RE, sub, text or "")
+
+# ── Snow Elf word joining ("marrying"), from the doc's grammar ──
+def _bl(c): return unicodedata.normalize("NFKD", c.lower())[0]
+
+def marry(left, right):
+    """Join two Snow Elf words by the doc's rules. Returns (joined, form with the join marker, why)."""
+    L = unicodedata.normalize("NFC", left.strip().strip("’'‘"))
+    R = unicodedata.normalize("NFC", right.strip().strip("’'‘"))
+    if not L or not R: return L + R, L + "’" + R, "Nothing to join."
+    why, rest, mid = "No sound is sandwiched at the join, so the words simply join.", R, ""
+    if len(R) > 2 and _bl(L[-1]) == _bl(R[1]) and _bl(R[0]) != _bl(R[1]):   # one sound flanked on both sides by the same sound
+        run = 1
+        while run < len(L) and _bl(L[-1 - run]) == _bl(L[-1]): run += 1
+        rest = R[2:]
+        if run >= 2:   # three or more of the same sound: the parent keeps every sound, the donor's offending sounds go
+            why = f"“{R[0]}” is surrounded by {run + 1} “{_bl(L[-1])}” sounds, so the donor’s “{R[:2]}” is removed and the parent keeps every sound"
+            if _bl(R[0]) in "aeiou":
+                mid = next((c for c in reversed(L) if _bl(c) in "aeiou"), "")
+                why += f"; a vowel was removed, so the parent’s last vowel “{mid}” is slotted in next to it"
+            why += "."
+        else:
+            why = f"“{R[0]}” is sandwiched between two “{_bl(L[-1])}” sounds, so it and the sound after it (“{R[:2]}”) are removed."
+    joined, marked = L + mid + rest, L + "’" + mid + rest
+    if left.strip()[:1].isupper(): joined, marked = joined[:1].upper() + joined[1:], marked[:1].upper() + marked[1:]
+    return joined, marked, why
+
+def join_words(text):
+    parts = [x for x in re.split(r"[\s,+’'‘]+", (text or "").strip()) if x]
+    if len(parts) < 2: return "Type two or more Snow Elf words, left to right (for example: ikurn indar)."
+    W = view(load(), [SNOW])[0]
+    cur, steps = parts[0], []
+    for nxt in parts[1:]:
+        j, mk, why = marry(cur, nxt)
+        steps.append(f"- **{cur}** + **{nxt}** → **{j}** (written with the join marker: {mk}). {why}")
+        cur = j
+    known = [f"{x} = {clean_def(W[norm(x)]['defs'][0])}" for x in parts if norm(x) in W]
+    return (f"### {cur}\n\n" + "\n".join(steps) + ("\n\nParts: " + "; ".join(known) if known else "") +
+            "\n\nThe left word is the main meaning and the right word modifies it. The doc’s warning: you can never go wrong not marrying words, "
+            "and you can go very wrong marrying them, so check a new compound with someone who knows the language.")
+
+# ── backup and restore for My words and Saved lines ──
+def export_file(text, name):
+    path = os.path.join(tempfile.gettempdir(), name)
+    with open(path, "w", encoding="utf-8") as f: f.write(text or "")
+    return path
+
+def export_mine(text): return export_file(text, "my_words_backup.txt")
+def export_saved(text): return export_file(text, "saved_lines_backup.txt")
+
+def _read_upload(path):
+    with open(getattr(path, "name", path), encoding="utf-8-sig", errors="replace") as f: return f.read()
+
+def restore_mine(path):
+    if not path: return gr.update(), "Choose a backup file first."
+    text = _read_upload(path)
+    return text, save_mine(text)
+
+def restore_saved(path):
+    if not path: return gr.update(), "Choose a backup file first."
+    text = _read_upload(path)
+    return text, write_saved(text)
 
 # ── roleplay line builder and saved lines ──
 LINE_FORMATS = ["Name says, “…”", "Name: …", "“…” Name says", "Just the words"]
@@ -662,6 +767,13 @@ def check_card(answer, st=""):
     return f"{fb}\n\nScore: {c['c']}/{c['t']}", json.dumps(c)
 
 # ── dictionary, browse, numbers ───────────────────────────────────────────
+def suggest(q, W, E, n=4, cutoff=0.7):
+    """Close matches for a word that wasn't found, from both the Fennic and the English side."""
+    k, ql, out = norm(q), q.lower(), []
+    for kk in difflib.get_close_matches(k, list(W), n=n, cutoff=cutoff): out.append(f"**{W[kk]['form']}**: {clean_def(W[kk]['defs'][0])}")
+    for ek in difflib.get_close_matches(ql, list(E), n=n, cutoff=cutoff): out.append(f"{ek} → **{E[ek][0]}**")
+    return out[:n]
+
 def search(q, mode=MODES[0]):
     d, q = load(), (q or "").strip()
     W, E = view(d, mode)
@@ -679,7 +791,9 @@ def search(q, mode=MODES[0]):
         seen.add(kk); e = W[kk]
         lines.append(f"- **{e['form']}**: {'; '.join(e['defs'])} · *{e['sec']}*")
         if len(lines) >= 40: break
-    return "\n".join(lines) or f"Nothing found for “{q}”."
+    if lines: return "\n".join(lines)
+    sg = suggest(q, W, E)
+    return f"Nothing found for “{q}”." + ("\n\nDid you mean:\n" + "\n".join(f"- {x}" for x in sg) if sg else "")
 
 def browse(kind, flt, mode=MODES[0]):
     d, f = load(), (flt or "").lower()
@@ -752,7 +866,12 @@ def refresh(kind, flt, mode=MODES[0]):
     return status_md(d), browse(kind, flt, mode), grammar_text(d, mode)
 
 # ── UI ────────────────────────────────────────────────────────────────────
-with gr.Blocks(title="Maparonnarn · Fennic Elven") as demo:
+SCRIPT_FONTS = "'Noto Sans', 'Noto Sans Armenian', 'Noto Sans Runic', 'Noto Sans Math', 'Noto Sans Symbols 2', 'DejaVu Sans', 'Segoe UI Symbol', 'Cambria Math', 'Arial Unicode MS', sans-serif"
+CSS = "#script-out textarea, #script-out input { font-family: " + SCRIPT_FONTS + " !important; font-size: 1.3rem; line-height: 1.7; }"
+HEAD = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
+        '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans&family=Noto+Sans+Armenian&family=Noto+Sans+Runic&family=Noto+Sans+Math&family=Noto+Sans+Symbols+2&display=swap">')
+
+with gr.Blocks(title="Maparonnarn · Fennic Elven", css=CSS, head=HEAD) as demo:
     gr.Markdown("# Maparonnarn · Fennic Elven (Snow Elf dialect)")
     status = gr.Markdown()
     sync_btn = gr.Button("🔄 Sync from Google Doc")
@@ -801,6 +920,15 @@ with gr.Blocks(title="Maparonnarn · Fennic Elven") as demo:
             sv_box = gr.Textbox(lines=14, label="saved_lines.txt")
             sv_btn = gr.Button("Save changes")
             sv_msg = gr.Markdown()
+            sv_dl_btn = gr.Button("Make a backup file")
+            sv_dl = gr.File(label="Your backup (click the file name to download)", interactive=False)
+            sv_up = gr.File(label="Restore from a backup file", file_types=[".txt"], type="filepath")
+            sv_restore = gr.Button("Restore")
+        with gr.Tab("Word joiner (Snow Elf)"):
+            gr.Markdown("Joins Snow Elf words by the doc's rules: the left word is the main meaning, a sound sandwiched at the join is removed, and so on.")
+            wj_in = gr.Textbox(label="Words to join, left to right", placeholder="ikurn indar")
+            wj_btn = gr.Button("Join")
+            wj_out = gr.Markdown()
         with gr.Tab("Search"):
             q = gr.Textbox(label="Word (either language)")
             q_btn = gr.Button("Search")
@@ -818,10 +946,14 @@ with gr.Blocks(title="Maparonnarn · Fennic Elven") as demo:
             mine = gr.Textbox(lines=14, label="my_words.txt")
             mine_btn = gr.Button("Save my words")
             mine_msg = gr.Markdown()
+            mine_dl_btn = gr.Button("Make a backup file")
+            mine_dl = gr.File(label="Your backup (click the file name to download)", interactive=False)
+            mine_up = gr.File(label="Restore from a backup file", file_types=[".txt"], type="filepath")
+            mine_restore = gr.Button("Restore")
         with gr.Tab("Vel'luah script"):
             sc_in = gr.Textbox(label="English, or Vel'luah in Latin letters", placeholder="good thanks")
             sc_tr = gr.Checkbox(label="Translate from English first (Dark Elf dictionary)", value=True)
-            sc_out = gr.Textbox(label="Vel'luah (Latin) and script", lines=2, interactive=False, show_copy_button=True)
+            sc_out = gr.Textbox(label="Vel'luah (Latin) and script", lines=2, interactive=False, show_copy_button=True, elem_id="script-out")
             gr.Markdown("With translation on, the first line is the Vel'luah and the second is the script. Words the dictionary doesn't have stay in English letters. Letters with no glyph stay as typed.")
         with gr.Tab("Grammar"):
             gram = gr.Textbox(label="Grammar notes (follow the dialects ticked above)", lines=28, interactive=False)
@@ -846,6 +978,11 @@ with gr.Blocks(title="Maparonnarn · Fennic Elven") as demo:
     q_btn.click(search, [q, mode], q_out, api_name=False); q.submit(search, [q, mode], q_out, api_name=False)
     n_btn.click(number, [n_in, mode], n_out, api_name=False); n_in.submit(number, [n_in, mode], n_out, api_name=False)
     dict_btn.click(import_dictionary, dict_file, [dict_msg, status], api_name=False)
+    wj_btn.click(join_words, wj_in, wj_out, api_name=False); wj_in.submit(join_words, wj_in, wj_out, api_name=False)
+    mine_dl_btn.click(export_mine, mine, mine_dl, api_name=False)
+    mine_restore.click(restore_mine, mine_up, [mine, mine_msg], api_name=False)
+    sv_dl_btn.click(export_saved, sv_box, sv_dl, api_name=False)
+    sv_restore.click(restore_saved, sv_up, [sv_box, sv_msg], api_name=False)
     lb_args = [lb_name, lb_in, mode, lb_fmt, lb_note, lb_emote, sov]
     lb_btn.click(build_line, lb_args, lb_out, api_name=False); lb_in.submit(build_line, lb_args, lb_out, api_name=False)
     lb_save.click(add_saved, lb_out, [lb_msg, sv_box], api_name=False)
@@ -860,6 +997,7 @@ _EMBEDDED = {
     'maparonnarn_wiki_snapshot.txt': "## Seed words\nacal: valuable, golden, cursed\nadil: needy, desiring, wanton\nadont: requesting, awaiting\nadri: evil, immoral, hate\naelor: abomination, faithless, demon\naengul: Aengul, race of semi-divine beings affiliated with light\naetah: age\naeth: aether\naher: to bless\nakal: valuable, golden\nallim: sin\nana: to be\nandria: hope\nanny: dance\nasul: sun\nata: ugly, tainted\nathri: serpent, snake\nailer: wizard, conjurer, heretic\nalor: salt\name: forest\nannil: guiding\nante: last\narche: infrequent, sporadic, rare\narhil: just, fair\nasimulum: sanctuary, glade, asylum\naver: to wander, to roam\navento: to follow\nayal: yellow\nayil: to like (a person or thing)\nayl: to like (a thing)\nayla: good\nbanih: six\nbarbu: dark, black, hedgehog\nberr: bow\nbelou: pink\nbida: to drink\nbilok: to create, to make\nbortu: dwarf\ncaele: sky\ncelia: star\nceru: strong, mighty\nchae: tea\nchirr: wolf\nchil: descend\nchul: to must\ncihi: city\ncinh: to stop, to cease\nciw: to sleep\ncrua: hurting, suffering\ndaemon: Daemon, race of semi-divines affiliated with smoke and fire\ndagr: war\ndant: to fall, to drop\ndiraar: guard, sentinel\ndion: long\ndrui: druid\ndraoi: evil druid, warlock, sorcerer\nehier: to find\nenaer: guest\nento: next\nern: to can, to be able to\nestel: trust\nesun: eight\neth: end, to end, to die\nevar: to protect, preserve\ney: use, application\nfaesu: horse\nfer: tool\nfenn: ice\nfeta: cold\nfih: to eat, to feed\nfin: region\nfiyem: reborn, renewed, revitalized\nfyu: full\nha: it\nhae: her\nhael: three\nhaelun: mother\nhaesiea: to forget\nhaler: to promise, to pledge\nharriel: square\nheial: circle, council\nhier: near\nhileia: peace\nhiuw: to twitch, to move\nhiyl: health\nibar: white, owl\nigne: flame, fire\nirham: industry\niheiuh: wind\nihn: stick\nikur: wrought, cold, gray\nikru: foolish\niller: to give, to grant\nilum: glowing\ninder: to read, study, memorize\nindor: book\nirrin: glass\nito: to, here, within\niyat: thought\niylanh: to place\nkae: me\nkalem: Malin's year\nkaliri: event, party\nkarim: fortday\nkarin: sunrise, day\nkath: feud\nker: dark, sunset, night\nkhel: darkness\nkina: murdered, killed, death\nkrafeh: corpse\nkrey: single\nkulin: five\nlae: him\nlaier: seven\nlar: sturdy, steadfast\nlari: female\nlareh: boulder, mountain, rock\nlarebil: anvil\nlarueth: netherrack\nlaureh: chosen, favored, noble\nlaurir: noble\nlen: song\nlenaern: inn\nlenniel: melody\nlent: to grow\nlenti: growth, moss\nlentos: brown\nley: grace, beauty\nliewyn: smile\nlle: kindness, good intention\nlie: dishonest, untrue, false, deceitful\nllir: friend\nlin: home, place\nllum: sorrowful, mourning\nllun: sorry\nllyt: aggressive, intimidating\nlom: to fragment, to splinter\nlomi: fragment, splinter, pebble\nlomal: flint\nluci: grape\nlu: prison, cage, bind, dungeon, restriction\nluth: enchant, spell\nlye: we\nlyu: silent\nmabidar: to suck\nmaehr: wisdom, knowledge\nmaelu: to know\nmagara: cave, cavern\nmahnih: wall\nmal: male\nmali: elf, elven\nmalin: Father of Elves, king\nmasuleh: anvil\nmedi: helping, helpful\nmetta: bird\nmeracahe: balance\nmiar: lava\nmira: warm\nmiruel: red\nmoiel: nine\nmordu: titan\nmya: mercy\nmyumier: to carry, to bring\nna: to\nnae: you\nnaeri: devout one, cleric\nnam: if\nnarn: to walk, travel through\nne: no\nnealu: to teach\nniut: two\nnor: land\no: why\noem: one\nohn: like (similar to)\noment: to meet\nokar: to safeguard\norrar: to hunt\nothelu: sharp\npario: to fail\nparir: harbinger\npern: potato\nparsaer: to conceive, to kindle\nperith: to remember\nprenu: take\npuer: to write, to draw, to scribble\npuerith: to write down, to record\nres: wayward, unpredictable, capricious\nrhil: vengeful, scorned\nriv: claw\nriurn: swamp\nraell: carrot, root, herb\nrost: rain\nsan: word, news\nsaneyr: to debate, discuss\nsalum: to feel, to sense\nseth: void\nsew: soup, stew\nsiimah: tower\nsil: sword\nsiol: lone, lonely\nsirame: honor\nsiru: mushroom\nsiyuer: to play\nsohae: devout one, cleric\nsuika: sugar\nsul: light\nsulier: to see\nsulii: eye\nsynal: power\ntaeleh: mind\ntaelu: to learn\ntahorran: hawk\ntahu: high\ntahn: peak, height\ntalar: horizon\ntaliyna: body, living being\ntaliiyher: to bleed\ntaliyu: secret\ntalonnii: family, bloodline\ntarem: Elven week\ntayna: life\ntaynei: green\ntaynuel: vitality, energetic, alive\ntelu: ten\ntenna: until\ntennallar: ocean\nterh: to grind, process, churn\ntillun: forgive\ntinuviel: nightingale\ntir'id: risk, danger\ntiuth: triangle\nthrur: explosive, volatile\nthill: pure, refined, delicate\nthul: raw, unrefined, brusque\nti: yes\ntilr: submission, servitude\ntir: law\ntos: desert, wasteland, barren ground\ntufer: to construct, to prop\ntur: bone\nturr: sheep\ntuva: everything, all\ntuveh: wool, something soft\nueth: nether\nuhier: to seek\nulln: rot, withering\nunya: then\nuradh: to scowl\nuriar: to shout\nurth: to rule\nuruk: orc\nut: because\nuvul: powder\nvaedrar: to melt\nvailu: four\nvalah: human\nvallei: water\nvalein: milk\nvallel: blue\nvallum: crying, grieving\nvalm: art\nvalmuel: purple\nvan: to go, to fare\nvelulaei: moon\nvihai: whisper\nvilut: cow\nvira: vigilant, mournful\nvularale: bat\nvull: to deceive, to trick\nwaleh: to heal\nwehn: grass, grain\nwelier: to listen, to hear\nwy: appendage\nwyl: while\nwyn: happy\ny: upon\nyallr: to live\nyuln: gemstone\n## Compound words\nacalin: shop\nacaln: gold\nadont'ahern: please\nael'tireth: misjudgement\nael'tirether: to misjudge\naetahu: aged, old\nahavento: to worship\nahavento'lin: temple, church, shrine\naheral'leh: highelven\nahern: blessing\nahernan: thank you\nakaleh: wealth, money, valuables\nakaleh'ii: worth\nakaln: gold\nalliman: sinful\nallimar: to sin\nallimir: sinner\nalor'bidan: brine\naloronn: salmon (or fish in general)\nalonn: salmon (or fish in general)\naloru: salty, saline\name'leh: woodelven\name'lie: orchard, food forest\name'nor: woodland\namenor: wilderness\name'sae: forestry\namesair: forester\namonn: wood\nanah'wy: head\nanaln: the past\nanalnu: past, previous\naneh'wy: right hand\nanih'wy: left hand\nanoh'wy: foot\nanoh'wyan: feet\nanuh'wy: hand\nanuh'wyan: hands\nanniler: to guide, direct\nannyer: to dance\nasulu: sunny, sunlit\navern: wanderer, confused person\nayilu: liked, likable\nayler: to improve, to make better\nbeloun: pig\nberrir: archer\nbida'lin: tavern\nbidan: drink, beverage, liquid\nbilokonn: to fornicate\nbilok'sair: craftsman\nbortuler: to mine, to delve\nbortu'lin: mineshaft\nceruer: to strengthen, to fortify\nceru'lin: stronghold, fort\ncerun: strength\nchiler: to descend\nchil'onn: descendant\nchirr'ii: puppy, cub, whelp\nchirr'lin: den, lair\nciwn: sleep\nciwu: sleepy\ndagre: to fight\ndagre'sae: fighting, war\ndionn: length\ndioner: to lengthen\ndionne: short\ndionner: to shorten\ndionsil: longsword\ndionnesil: shortsword\ndiv'andria: hopeless\ndiv'ciwn: sleepless\ndiv'eth: endless\ndiv'ey: useless\ndiv'lin: homeless\ndiv'sanern: speechless\ndiv'sirame: honourless\ndiv'tayna: lifeless, dead\ndiv'tir: lawless\ndiv'tur: boneless, spineless\ndivu: empty\ndivun: emptiness\nelanah: north\nelanoh: south\nelanih: east\nelaneh: west\nel'santalian: the alphabet\nestelle: to trust\nesun'wy: octopus\nevarir: protector\nevaru: protected, preserved\neyr: to use, to apply\neyrir: user\nfaesu'lin: stable\nfenn'leh: snowelven\nfennu: icy\nfer'ame: axe\nfer'bilok: hammer\nfer'nor: shovel\nfer'norsae: hoe\nfer'puer: quill, pen\nfer'sul: torch\nfer'thuln: pickaxe\nfin'urthir: duke\nfisaen: seed\nhalern: promise, pledge, oath\nhaeluner: to mother, to care for\nhaelunor: motherland\nhaelunu: motherly\nheialu: round\nheialyem: to return, to circle back\nhiuwu: twitchy\nhiyl'lin: clinic, hospital\nhiylne: sickness\nhiylneu: sickly\nhiyl'sair: medic, doctor\nhiylu: healthy, spirited\nhiylun: healthiness\nigne'ame: firewood, fuel\nigner: to burn\nignerir: burner\nignern: a burn, a brand\nigne'sae: destruction, war\nigneu: firey\niheiuhii: voice, breath\niheiuh'tehrlin: windmill\niheiuhu: windy\nihnsil: spear, lance\nihnsilir: spearman, lancer\niinu: young\nikurn: iron\nil'celian: constellation, starsign\nilumr: to glow\nindor'lin: library\ninder'lin: school, college, university\nirham'lin: workshop\nitone: you're welcome\niyath: to think\niyat'sae: philosophy\niyatsair: philosopher\niyl'karin: today\nkather: to feud\nkathir: foe\nkarin'ante: yesterday\nkarin'ento: tomorrow\nker'leh: darkelven\nkrafeh'lin: grave, tomb\nkrafeh'nor: graveyard, cemetary\nkreyn: pair\nlarehu: rocky, mountainous\nlarehne: valley\nlari'maronn: female cousin\nlari'onn: sister\nlenir: singer, musician\nlentiu: mossy\nlensair: bard, minstrel, troubadour\nliear: to lie\nlien: lie\nliewynh: to smile\nliewyn'saer: to entertain, to amuse\nlinan'sae: town\nlin'urthir: baron\nlliran: friends\nlliru: friendly\nllirer: to befriend\nllum'saer: to sadden\nllyth: to strike\nluan: prisons, cages, dungeons\nlucionn: sour\nlucionn'bidan: vinegar\nluci'sair: vintner, winemaker\nluci'tehral: wine\nluer: to imprison, to cage, to bind\nluerir: captor\nluerlent: flowerpot\nluir: prisoner, captive\nluir'sair: serf, slave, thrall\nluther: to enchant\nluthien: enchanting\nluthu: enchanted\nlye'leh: public\nlyeleh'lin: republic\nlye'synal: democracy\nlye'synalir: democrat\nlye'urthir: demagogue\nlyuer: to silence\nlyun: silence\nlyu'saer: to censor\nmaceru: almighty\nmadion: longer\nmadionne: shorter\nmaetahu: older, parent\nmalaurir: prince\nmaleyuln: diamond\nmali'aheral: high elf\nmali'ame: wood elf\nmaliear: to betray\nmalieir: traitor\nmaliewynh: to laugh\nmali'fenn: snow elf\nmali'ker: dark elf\nmalii'lari: daughter\nmalii'larionn: niece\nmalii'mal: son\nmalii'malonn: nephew\nmal'maronn: male cousin\nmaln: father\nmalner: to father\nmal'onn: brother\nmarayla: perfect\nmaraylan: perfection\nmaraylanir: paragon\nmarayler: to perfect\nmar'haelun: grandmother\nmarlari'onn: aunt\nmarmadion: longest\nmarmadionne: shortest\nmarmaetahu: oldest\nmar'maln: grandfather\nmarmal'onn: uncle\nmarn: more\nmarenne: less\nmarurthir: tyrant\nmasair: master\nmasilir: knight\nmasuleh'sair: blacksmith, smith\nmarmatelu: thousand\nmatelu: hundred\nmataliame: log\nmayl: love\nmayler: to love\nmayil: love (for a person)\nmaylu: beloved, loved\nmayilun: beloved, loved one\nmawyn: bliss\nmawynu: blissfully\nmetta'lin: aviary, birdhouse\nmiar'sae: griefing, harming, spiting\nmirueler: to redden, to blush\nmyumierir: carrier, container\nnaeluir: teacher\nnaelun: teaching, lesson\nnalin: homeward\nnarn'acaele: fly\nnarneth: destination, goal\nnarn'faesu: horsetravel\nnarn'tennallar: sail\nnarn'vallei: swim\nnen: without, lacking\nnen'lu: free, without restriction\nnen'luan: limitless\nnen'lun: freedom, liberty\nnenlu'norsair: freeholder, freeman, tenant\nne'sirame: dishonour\nne'sirameu: dishonourable\nnor'sae: farming\nnor'saer: to farm\nnorsae'lin: farmstead\nnorsae'nor: farmland\nnor'sair: farmer\nnor'puerith: geography\nnorurth: realm, country\nnorturth'lye: countrymen\nokarn: oasis\nonner: to birth, to give birth\nonnerir: parent\norrarir: hunter\norrarn: hunt\npar'karinah: dawn\npar'karinante: ereyesterday\npar'ker: dusk\npar'narneth: predestination\nraell'tehral: salve, potion\nraellu: herbal\nres'karinento: overmorrow\nresne: predictable, consistent\nresnen: prediction\nresner: to predict\nresvuleth: catastrophe\nreth: fate\nrhiln: vengeance, scorn\nriurnor: swampland\nrost'ame: rainforest\nrostu: rainy, wet, damp\nsanan'inder: dictionary\nsaner: to speak\nsanern: speech, language\nsaneyir: debater, public speaker, orator\nsan'tali: letter\nsan'talian: letters\nsair: worker, spreader\nsewer: to stew\nsewonn: hearty\nsilir: swordsman, swordfighter\nsilma: greatsword, broadsword\nsirameu: honourable\nsiruonn: bitter, umami\nsiyuerir: player, actor\nsiyuern: play, performance\nsohaer: ruler\nsuikaonn: sweet\nsulasul: sunlight\nsulcelia: starlight\nsul'irrin: glowstone\nsynalli: powerful\ntaeleher: to mind, to consider\ntaher: to ascend, to rise, to climb\ntahorranii: hawks\ntalareh: stone\ntaliame: tree\ntalivalah: halfling\ntaliuth: oppressor\ntal'uruk: goblin\ntayna'puerith: biography\ntehrir: miller\ntehr'lin: mill\ntennallarii: sea\nthruer: to explode\nthrurn: explosive, dynamite\nthilln: silver\nthulith: metal\nthuln: ore, raw material\ntilrer: to serve, to submit\ntilrir: servant\ntilru: servile, submissive\ntilru'chirr: dog\ntireth: doom, judgement\ntirether: to deem, to judge\ntirethir: doomsman, judge\ntiru: lawful, legal\ntirune: illegal\ntos'sae: razing, pillaging\ntosu: dry\nturu: boney, spindly\nturru: sheepish\ntuva'aenguln: pantheon\ntuva'lye: everyone\ntuvalye'hiylne: pandemic\ntuva'maln: All Father\nullr: rot, decay, wither\nullral: monster, undead\nuradir: naysayer\nuriarir: crier, shouter, announcer, herald\nuriarn: claim\nuriaru: loud\nurthir: ruler\nuvul'igne: ash\nuvul'thrurn: gunpowder\nuvul'wehn: flour\nvalein'tehral: cheese\nvallei'tehrlin: watermill\nvalmer: to paint, to sculpt, to do art\nvalmir: artist\nvihaier: to whisper\nvuln: fox\nwehn'bidan: ale, beer\nwehnor: grassland\nwehn'sae: baking\nwehn'sair: baker\nwehn'tehral: bread\nwelieryem: to repeat, to echo\nwynn: happiness\nwyn'resvuleth: eucatastrophe\nael'tiretheru: misjudged\nakalin: shop\nallimiran: sinners\name'saer: to forest, to plant\nanoeh'wy: right foot\nanoih'wy: left foot\naylu: liked, likable (a thing)\nayilun: likability\nchil'onnan: descendants\nelanahu: northern\nelanohu: southern\nelanihu: eastern\nelanehu: western\nheialu'sae: to encircle, to surround\nheialu'saen: encirclement\nheialu'saeien: encircling, surrounding\nheialu'saeu: encircled, surrounded\nilmyumier: tattoo (typically specifically refers to a woodelven tribal tattoo)\nkathiran: foes\nleyu: graceful, beautiful\nlin'puerith: topography\nlin'puerithu: topographic, topographical\nlin'puerithan: topographics\nlin'puerithir: topographer\nlye'lehu: publically\nlyeleh'linu: republican\nlye'puerith: demography\nlye'puerithu: demographic, demographical\nlye'puerithan: demographics\nlye'puerithir: demographer\nlyesynal'sae: democratization\nlye'synalu: democratic\nmalauriru: princely\nnaelunan: teachings, lessons\nnor'puerith: geography\nnor'puerithu: geographic, geographical\nnor'puerithan: geographics\nnor'puerithir: geographer\nonnerirer: to parent\ntayna'puerith: biography\ntayna'puerithu: biographic, biographical\ntayna'puerithan: biographies\ntayna'puerithir: biographer\ntirethu: deemed, judged\ntos'saer: to raze, to pillage\n## Fiyem expansion\nacalicne: kindlefen\naela: bad\nahaces: glory\nailacaln: arcaurum\nakalenponn: tomato\nalmen: ship\nalmenor: haven, port\name'chaewa: king's ivy\name'felis: lynx\name'felisii: wildcat\namelarn: hazel\name'lucii: huckleberry\namorn: bush\nar'fetan: winter\nar'vell: autumn, fall\nar'lent: spring\nar'miran: summer\nathrihnan: serpent's stalk\nayal'cionn: lemon\nayuacatel: avocado\nazdrazi'masu: dracanium\nbarbu'lucii: blackberry\nbelou'akaln: rose gold\nberrorn: yew\nberu: bronze\nbilo: hare, rabbit\nbiloemer: to unite\nbilok'carn: beaver\nbilo'lin: warren\ncaelonn: nickel\ncaer: deer\ncaerleh: antler\ncaer'lucii: raspberry\ncantar: to sit\ncarn: rodent, rat\ncarnii: mouse\nchaewa: coffee\ncheru: oak\ncherularn: acorn\ncionn: citrus\nciver: to lay\nciwienti: night sap\ndaemon'masu: daemonsteel\ndioler: to reach\ndraelareh: dralachite\nelumer: to shine\neth'larum: border, edge\nethlarum'nor: borderland, march, frontier\nettonn: egg\nenti: flower\nentien: flowering, blooming, blossoming\nentiu: flowery\nfae: fae, fairy\nfaekhetsu: mule\nfaeser: to ride\nfae'siruan: faerie truffles\nfelis: cat\nfennuvul: athin\nferuer: feather\nfetalor: gelunite\nfisaen'lucii: strawberry\nfisaenponn: pomegranate\nhamat: dolphin\nheiluner: to embrace, to hug\nhesin: tundra\nhucarer: to stick\nhucaru: sticky\nigon: smoke\nigoner: to smoke\nihnorn: coppice\nilentor: to take\nillam: bismuth\nillam'beru: bismuth bronze\nillaruman: striped\nillaruman'felis: tiger\nillaruman'mecarn: chipmunk\nillener: to attune\nilln: zinc\nilsolynan: spotted, dotted, speckled\nilsolynan'felis: leopard\nilsolynan'felisii: cheetah\nilum'lucii: glowberry\niper: birch\niuver: to shake\nkaluca: chicken\nkastalarn: chestnut\nkeelareh: magnetus\nkerilum: nightglow\nker'lucii: black currant\nker'beru: black bronze\nketta: nightbird\nkhetsu: donkey\nkwak: raven\nlaer: to stand\nlaker: to offend\nlan: leaf\nlanu: leafy\nlarn: nut\nlarn'lenponn: quince\nlarum: stripe, line\nlem: hair\nlemu: hairy\nlenponn: apple, fruit\nlentilem: beardweed\nlentoslarn: walnut\nleran: goat\nlucii: berry\nluciorn: grapevine\nmalen: melon\nmali'lem: elf's hair vine\nmanileh: animals\nmasu: steel\nmecarn: squirrel\nmettaponn: cherry\nmirayal: orange (color)\nmirayal'tosorn: acacia\nmiriurn: mangrove\nmiruel'lucii: red currant\nmirun: copper\nmorma: bear\nmus: banana\nnarier: to run\nneanar: to hide, to disappear\nnemiis: spider\nnory: shore, coast, strand, beach\nokhel: beech\nokarn'larn: coconut\nokarn'orn: palm\nokarn'ponn: date\notheraell: blisterthorn\nparpilocer: to prepare\npar'vell: apricot\npeponn: pumpkin\npilocer: to work\npirost: pear\nponn: fruit\nren: road, way, path, street\nrhenponn: peach\nriurn'carn: muskrat\nriurn'lucii: cranberry\nrostame'felis: jaguar\nrostame'felisii: ocelot\nsaylar: to praise\nseliar: to look\nsimar: spruce\nsolyn: spot, dot, speck\nsorr: crow\nsuika'lucii: sweet berry\nsuika'orn: maple\nsuika'wehnonn: pastry\ntaehar: to raise, to lift\ntal'beru: brass\nthilln'ii: platinum\nthilln'tivern: pewter\nthrurlareh: volatite\nthrur'masu: boomsteel\ntivern: tin\ntosorn: desert tree or shrub, dead bush\ntualer: to cook\nuel: color\nvaed: lead\nvaeler: to stream, to flow\nvaeln: stream, brook, creek\nvaelnarn: bridge, crossing, ford\nvaelnarner: to cross, to ford\nvaelren: river\nvallel'lucii: blueberry\nvallier: willow\nvallon: fog\nvalmuellen: plum\nvanter: to come\nvekurth: hall\nvell: harvest, waning\nvelulareh: lunarite\nvuln'lucii: lingonberry\nwaelu: fame\nwehnonn: cake\nwelieyetta: parrot\nwyar: to stomp, to stamp\nyamar: to charge\nyeluer: to connect\name'larn: hazelnut\nenticelia: diddyfunkle\nhucarulan: amberiddle\nihnsiliian'lucii: gooseberry\nkulinti: ponderlot\nlentilu: jailor's moss\nlin'carn: mouse\nli'renponn: orange (fruit)\nllum'vallier: weeping willow\nlyuvanell: paddfoot\nma'lenponn: melon\nmaleyuln'masu: carbarum\nmanilehn: (animal) specie\nmawynlan: blissfoil\nmiriurn'orn: mangrove tree\nmiriurn'taliame: mangrove tree\nmiriv: drake's tail\nokarn'larnorn: coconut palm\nokarn'ponnorn: date palm\nponnorn: (wild) fruit tree\nrostame'orn: jungle shrub, kapok\nsiruelan: helviiryn mushroom\nsirulith: corrospore\ntaliiynhenti: blood lotus\ntaynei'cionn: lime\ntosu'amorn: barrier brush\nvalliyna: aqua nymph\nwehn'carnii: hamster\n## Affixes\nac- (aca-): Honorific for an accursed.\nah- (ahe-): Honorific for reverence. Often used in front of names to denote sainthood.\nael-: Vile, unnatural, beastly.\n-al: Designates the completion of an action\n-an: many, full of. Mostly designates plurality\nan*h- (a/o/i/e/u): To direct (up/down/left/right/rotate)\nav-: wandering\nay: for\n-ante (-nte): Last\ndiv-: Empty, devoid of (antecedent to -an)\n-ento (-nto): next\n-ehya: and. Used at the beginning of a sentence for 'but...'\nel- (ele-): Changes a noun into a pronoun, making it a title of someone, or possibly something.\n-er (-ler): Used to designate a verb in the infinitive (to be), or change a noun into a verb.\nfi-: new, anew. Often used as prefix, but not exclusively.\nheya- (hey-): what, how, who\nil- (ilu-): with\n-ii: little. Designates the diminutive form. Plural: iian.\n-ir: Designates the purpose of someone\niyl-: this. Usually a prefix, though not exclusively.\niyul-: that. Usually a prefix, though not exclusively.\n-leh: Designates affiliation\nma- (mar-): very. Intensifier.\n-n: Sometimes put behind an adjective or verb to create a noun.\n-ne (-ane): not. A suffix used to indicate the negative.\n-onn: from, born, kin. Often a suffix, but not always.\npar- (pra-): before, pre-\nres- (re-): wayward, capricious, unpredictable\n-sae: Spreading, development management.\ntal- (tali-): Part (of)\n-u: Used to denote an adjective. (G. Arvellon ascribes this specifically to the past participle).\n-ien: Used to denote an adjective. (G. Arvellon ascribes this specifically to the present participle, reconstructed from 'luthien': enchanting).\nu-: or. Always a prefix and always used with apostrophe.\n-yem (-hyem): again. Can be used to make a 're-' family of verbs\nvul- (vule-): clever, intuitive, deceptive.\nar-: a prefix denoting a longer time period, a season\n-drim: a suffix denoting a people belonging to a certain land, a nationality or ethnicity. As in 'Almenodrim'; elves from Almenor.\n-orn: denoting a tree or shrub\n",
     'maparonnarn_dark_snapshot.csv': 'Vel\'luah,Meaning,Direct Common Translation,Uppercase Latin,Vel\'luah Script,Qalasheen Numeral / Factor,Vel\'luah,Vel\'luah Script\r\nAhernyn,An informal ‘thanks’. Derived from ancient elven,thanks,Mm,ɱ,0,sly,\r\nAlyetwon,"A word with no direct translation, at least not one that is literal. It roughly means a being that is evil or a person with evil intent. It is commonly used when the word ‘dark spawn’ would be used.",N/A,Zz,չ,1,az,\r\nBashkymyr,"An insult that is used to describe a non-dark elf who pursues a dark elven mate, typically fixated on aesthetics over personality, ability or culture. This is a very shameful title.",N/A,Tt,ȶ,2,nyt,\r\nBe’a-velulael,"Used in sunlight hours similarly to ‘good day’, though with less cheerful connotations; roughly translating to ‘without the moon’.",without the moon,Uu,ʊ,3,hek,\r\nBolso,"Literally meaning ‘cat’, a highly derogatory label to give a Kharajyr. Its meaning in this context is no mere jape at their feline appearance, however; choosing ‘bolso’ to describe a kharajyr over the proper term ‘velubol’ implies a disconnect between the kharajyr in question and the culture tied to their fallen empire and their now dead goddess. That is to say, ‘bolso’ is a racist caricature of a kharajyr who is now feral and detached from their bygone people and faith.",cat,Bb,ɮ,4,zag,\r\nEtamaehr,"An elf of at least half (and never less) dark elfish makeup crossed with any other descendant subrace, who would otherwise have been deemed worthy of the ‘maehr’ styling. It is intended as a respectful term, though the implied disrespect of denying these mixed elves the full mantle of ‘maehr’ can be controversial.",N/A,Gg,ɠ,5,kru,\r\nHaeuze,"A person with long hair left uncut, often due to piety. Though a mostly neutral label, it is to some more religious clans a respectful term denoting discipline and wisdom, whilst other more martial bands of dark elves have appropriated it as an insult meant to imply fragility and unreadiness in an individual who prefers form over function.",N/A,Ee,ɛ,6,vho,\r\nHelun-Velulaeya hon laht,A blessing for others,Mother-Moon guide you,Ll,ʅ,7,reu,\r\nHelun-Velulaeya tom uhv’lye honyr,A blessing for a personal group,Mother-Moon be our guide.,Kk,ӄ,8,xyn,\r\nKaryn-ye,"Reserved for the morning, this can be both a neutral greeting and an observation that dawn has come. It literally translates to ‘little sun’.",little sun,Dd,ð,9,bex,\r\nKasyana,This title is for the maehr that is considered the high venure of the nation at the time.,N/A,Yy,ψ,10,unz,\r\nKerayal,"An informal greeting, though more intimate than ‘vraz’. Though derived from the ancient elven’s ‘good evening’, it may be used at any time of day.",N/A,Rr,ᵲ,10s,-ah,\r\nKeren,"Best translated as ‘Drow’, Keren is an umbrella term meant to apply to both dark elves and mori’quessir, as well as dark dwarves on occasion. Though not an inflammatory term, some intentionally use it over malyker with the intent of omitting the ‘elf’ element of the word, othering themselves from the likes of wood or high elves.",drow,Aa,α,100s,-ee,\r\nLabaley,"A fusion of the words labek and leytura, meaning ‘white’ and ‘rose’ respectively. This is a derogatory term meant to describe heartlander and highlander humans, especially those that are zealous canonists.",N/A,Xx,ᛪ,1000s,-he,\r\nLebbaro,"A far less serious title, but one that is still commonly used by those who speak Vel’luah. This word is normally used to describe a person who is extremely silly, playful or otherwise goofy. This version of the word is not to be used as an insult and is instead used endearly.",N/A,Vv,ʋ,"100,000s",-yhk,\r\nLo laht malar la?,A challenge,will you fight me?,Hh,ɦ,"100,000,000s",-ux,\r\nLo laht malar lu la?,A call to arms,will you fight with me?,Oo,¤,,,\r\nLye ukh,‘Let’s go [together]’. Literally translating to ‘we go’.,we go,Nn,ռ,,,\r\nMaehr,"How many dark elves self-identify. Though the words \'maly\' meaning \'elf\' and \'ker\' meaning \'dark\' are both loaned from ancient elven and \'malyker\' is still used at times, \'maehr\' is a less literal label reserved for ""proper"" dark elves; all maehr are malyker, but not all malyker are maehr.",N/A,Ss,ʂ,,,\r\nMal\'baryl,An insulting term used for a once maehr that has accepted the advances of a bashkymyr. This term is only used in a negative way and carries the weight of having the title of maehr stripped from the dark elf in question.,N/A,,,,,\r\nNardo,"The current matriarch or sometimes patriarch of a Tribe, Clan, House.",chief,,,,,\r\nNumuda-hru,"A conservative expression of historic matriarchal values, reserved typically for a male maehr who strives beyond his station in spite of dark elven gender norms. Literally ‘unmanlike’. Not to be conflated with ‘unmanly’, ‘numuda-hru’ best describes a maehr who is boisterous, arrogant or unapologetically free-spirited.",unmanlike,,,,,\r\nOkerymaana (fem) | Ulathokeryma (masc),An exalted elder that was once the High Priestess/Priest. This person works as the advisor to the current acting High Priestess/Priest.,N/A,,,,,\r\nSka’at tul,‘come here’. ‘Ska’at’ can be used alone to simply mean ‘come’.,come here,,,,,\r\nThet’uzhel kix,"The refusal/ dismissal of a challenge. Literally translating to ‘the tide sleeps’ or ‘the waves sleep’. This phrase can also be used by a third party as an attempted diffusal, as well as finding positive use in recognition of peace and placidity.",the tide sleeps,,,,,\r\nThrom-kah,"Derived from old blah, interpreted as ‘be well’ as well as ‘well met’; doubles as a greeting or farewell in context.",well met,,,,,\r\nUkh,"‘Go’, as a dismissal.",go,,,,,\r\nUkh bo bashuk,"A dismissal, translating to ‘go in shame’. ‘Bashuk’, loaned from the mori’quessir word for ‘honour’, is a hurtful term not used lightly.",go in shame,,,,,\r\nUkh lu velulael,"A fond farewell blessing, translating to ‘go with the moon’.",go with the Moon,,,,,\r\nUrdaano,A title given to the husband of the Primarch. It does not have an exact translation but it is assumed to be an elevated version of patriarch.,N/A,,,,,\r\nUrve / Vule / Lyle,"Sir / Ma’am / A Gender Neutral Version. This is a respectful form of address, not to be confused with a knightly styling.",N/A,,,,,\r\nVanayal,A corruption of ancient elven’s ‘farewell’.,farewell,,,,,\r\nVelel,"Literally meaning ‘lunar’, the word is also used to describe a full cycle of the moon and forms compounds with numbers to describe the passage of months ((OOC days)). For instance ‘az-velel’ would be ‘one month’ ((one IRL day)).",lunar,,,,,\r\nVelelana,"Literally meaning ‘high lunar, the word describes one set of seven cycles of the moon and forms compounds with numbers to describe the passage of years ((OOC weeks)). For instance ‘az-velelana’ would be ‘one year’ ((one IRL week)).",high lunar,,,,,\r\nVelulaeyael kee,"The issuance of a formal challenge, such as a duel, contest or dispute. Literally translating to ‘the moon calls’; ‘the moon pulls’.",the moon pull,,,,,\r\nVrax,"A ceremonious greeting meant for superiors. Always accompanied by a salute, bow or other respectful bodylanguage. Also at times a holy word used by spiritual teachers to disciples.",N/A,,,,,\r\nVrax-maehr,"A formal greeting exclusive to dark elves, denoting respect or familial love. It would be inappropriate to greet a non dark elf this way, and insultingly taboo for a non-dark elf to greet anyone this way.",N/A,,,,,\r\nVraz,"An informal greeting, ‘hi’ or ‘hello’. Literally translates to ‘good’.",good,,,,,\r\nVulyzaana,A title given to the wife of the Primarch. It does not have an exact translation but it is assumed to be an elevated version of matriarch.,N/A,,,,,\r\nXabyth-exan,"A sacred word with no common language equivalent, describing when the moon is visible during daylight. It literally translates to ‘pale day’, albeit always spelled with holy ‘x’s instead of the \'z’s used when writing the words individually (‘zabyth’ and ‘ezan’ respectively). Many dark elves also use the term to describe days of religious observation regardless of if the moon is actually visible, in a similar fashion to the common ‘sabbath’.",N/A,,,,,\r\nXabyth-thet’uxh,"A sacred word with no common language equivalent, describing when the moon sets over the ocean. It literally translates to ‘pale tide’ or ‘pale waves’, albeit always spelled with holy ‘x’s instead of the \'z’s used when writing the words individually (‘zabyth’ and ‘thet’uzh’ respectively). Many dark elves believe that witnessing such is a grand omen, if not a direct blessing from their ancestral patrons.",N/A,,,,,\r\nYnx labah mabas,"A sincere way of giving thanks, typically reserved for significant gifts or favours. Literally translating to ‘bless yourself after’.",bless yourself after,,,,,\r\nYo’ros,"There is no Vel’luah equivalent to asking ‘please?’. Yo’ros is the closest term, though it denotes the act of begging - loaned from the mori’quessir’s ‘joros’ meaning ‘to ask’ - and is tainted with humiliating connotations. It is a decidedly desperate plea, and would be very insulting to the maehr to hear or use.",N/A,,,,,\r\nYthael,"Another term without a common language equivalent, ythael describes a tenacious warrior who fights only for their own passions and pragmatism. The term can also be used to describe a mercenary, bandit or assassin, albeit only when said individual is themselves a dark elf. It is a neutral term, without negative nor positive connotations.",N/A,,,,,\r\nYthaen,"Another term without a common language equivalent, ythaen describes a righteous warrior pledged to the preservation of an ideal. The term can also be used to describe a city guard, paladin or templar, albeit only when said individual is themselves a dark elf. It is a neutral term, without negative nor positive connotations.",N/A,,,,,\r\nYyrel vex!,The acceptance of a challenge. Literally translating to ‘the ocean pushes!’; ‘the sea answers!’.,the ocean push,,,,,\r\nZkabra,"Literally meaning ‘mud ear’, zkabra is an incredibly derogatory term meant for an elf or partial elf of any variety that either belongs to no culture or emulates heartlander or highlander cultures. Though the term could be used against a half-dark elf unworthy of ‘etamaehr’ it would not make sense to use against a full blooded one, regardless of if they are deemed ‘maehr’ or not. Its usage can be similar to ‘mongrel’, albeit only for those of elfish ancestry and not exclusively tied to one’s blood.",mud ear,,,,,\r\n',
     'maparonnarn_dark_grammar_snapshot.csv': '"Vel’luah\nVel’luah, sometimes called ‘Night Elven’, ‘Vulgar Drow’, ‘Greyspeak’ or ‘Moontongue’ is the modern language of the dark elves, derived from the race’s mother and holy tongues, Ancient Elven and Old Blah respectively, as well as sparse corruptions and loaned words from the vile verbiages of Mori’quessir and even - rarer still - sterilized mortal iterations of Al’tahrn-Durngo.\nVel’luah is no mere dialect of the aforementioned, however; as the official language of many clans and cultures across the broader dark elven diaspora (including those with no reverence for the Spirits nor historic subjugation at the hands of the mori’quessir), contemporary vel’luah speakers retain only a modicum of lexical similarity with the aforementioned. That is to say, as a distinct neo-elven language in its own right, the average Vel’luah speaker would not be conversationally understood by another that knew only Ancient Elven or Old Blah; nor would a monolinguistic Vel’luah speaker possess the ability to comprehend these without conscious efforts made to learn them from scratch."\r\n"Grammar:\n-Suffixes and prefixes immediately latch onto the word they correspond to. If a word already ends with the letter the suffix begins with, that letter is skipped. For example, ‘memnu’ meaning ‘to do’ and the ‘-ule’ suffix would combine as ‘memnule’ (‘doing’), as opposed to ‘memnuule’.\n-The predicate comes after the subject. (ex. \'was learned\', \'ran away\', \'ate them\')\n-Adjectives and adverbs are attached to the back of the word they describe with a hyphen\n-Plural is denoted by adding a –zh to the back of the noun\n-Articles attach themselves to the backs of nouns they affect, after any suffixes. For example, ‘the dark elves’ includes a noun [maehr] that is plural [zh] with ‘the’ as an article [el], so it translates to ‘maehrzhel’.\n-Past tense is denoted by adding an a\' to the front of the verb, before prefixes.\n-Future tense is denoted by adding an e\' to the front of the verb, before prefixes.\n-Present tense is defaulted to without either prefix.\n-Possession is denoted by prefixing uhv’ to a pronoun or noun. For instance yours or your is ‘uhv’laht’\n-To denote possession that belongs to someone else you will attach the suffix ‘uhn to the name of the thing or person who is possessing the object: Laevaelyn’s book becomes ‘Lavealyn’uhn olanu.’\n-Apostrophes are only grammatically relevant to the above tense and possession prefixes. All other uses merely denote a short pause in that word’s pronunciation.\n-Compound words are always hyphenated. There are no open or closed compounds. For example, the open compound word ‘full moon’ in this case combines the adjective [vyl] and the noun [velulaeya], so it translates to ‘vyl-velulaeya’."\r\n"Alphabet:\nUnlike the longer Common alphabet, Vel’luah only utilizes 19 letters consistently, and it also does not contain any diacritics. However inappropriate for Vel’luah words themselves, it is not unheard of for some dark elves to source additional letters from other tongues for their forenames and occasionally even family names. This remains controversial to some clans.\nVel’luah also utilizes its own script derived from Flexio, though many amongst the younger generations of dark elves tend to use it interchangeably with its Common alphabet equivalents.\nThere is no concept of uppercase nor lowercase in the Vel’luah script, though Flexio letters obey the same capitalisation rules as Common.\nɱ չ ȶ ʊ ɮ ɠ ɛ ʅ ӄ\nM Z T U B G E L K\nð ψ ᵲ α ᛪ ʋ ɦ ¤ ռ ʂ\nD Y R A X V H O N S\n-’X’ and ‘Z’ are interchangeable in spellings, though ‘X’ is typically reserved for nouns intended to appear formal and/or spiritually significant.\n-Like Common and unlike most other descendant languages, Vel’luah occasionally pairs ‘T’ and ‘H’ to form dental fricatives, the likes of which may be heard in Common words like ‘there’ and Vel’luah words like ‘kathir’"\r\n"Numbers:\nVel’luah has no numerical symbols. Instead, the names of numbers and equations are always written as full words:\n0 - sly\n1 - az 6 - vho\n2 - nyt 7 - reu\n3 - hek 8 - xyn\n4 - zag 9 - bex\n5 - kru 10 - unz\nNumber factors are determined by suffixing them accordingly:\n10s -ah\n100s -ee\n1000s -he\n100,000s -yhk\n100,000,000s -ux\nWhen described figuratively, these factors are written as if beginning with 1, and are suffixed again as plurals. A dark elf exaggerating with the word ‘hundreds’ would say ‘azahzh’.\nUnlike the Qalasheen Numerals used in Common, Vel’luah’s 0 (‘sly’) is never used to indicate a decimal place. It is less a number and more an indication of nothing; “less than one”.\nEach factor is written in descending order, connected with hyphens.\nFor example, 99 is ‘bexah-bex’. 1,203 is ‘azhe-nytee-hek’ (notably NOT ‘azhe-nytee-sly-hek’)."\r\n',
+    'maparonnarn_dark_dictionary_snapshot.csv': 'Common,Vel\'luah,,Common,Vel\'luah\r\n"a-, an-, in-, mis- (without)",be-,,-acy (state or quality),-eth\r\nante- (before),luy-,,-al (act or process of),-ethe\r\nanti- (against),uby-,,"-ance, -ence, -hood (state or quality of)",-rax\r\n"[masculine only] arch-, extra-, hyper-, omni-(high, ruler, more, over, all-encompassing)",ulath-,,"[feminine only] -arch, -est (highest, most)",-ana\r\nauto- (self),shadar-,,-dom (place or state of being),-uk\r\nbi- (two),ny-,,"-ist, -ian, -er, -or (one who)",-yr\r\n"co-, inter- (with, between)",yl-,,-ism (doctrine or belief),-za\r\ndec- (ten),un-,,"-ness, -ity (state of being)",-um\r\n"dis-, -ill (not)",bar-,,"-scape (such as landscape, etc.)",-byo\r\nen- (put into),shyl-,,-self (personal),-shah\r\nennea- (nine),be-,,"-ship, -ian (position held)",-vot\r\nex- (out of),zuul-,,"-sion, -tion, -ful, -esque (state of being, notable for, reminiscent of)",-kon\r\nhept- (seven),re-,,-ate (become),-trak\r\nhex- (six),vo-,,"-ify, -fy (to make)",-yg\r\nin- (into),zaal-,,"-able, -ible (capable of being)",-uth\r\nmacro- (large),ulth-,,-al (pertaining to),-ley\r\nmicro- (small),yeo-,,"-ious, -ous, -ish, -en, -ic (characterized by, having the quality of)",-yl\r\nmono- (one),az-,,-ly (like),-eb\r\noct- (eight),xy-,,-ily (forming adverbs from adjectives),-ebe\r\npenta- (five),ku-,,-y (characterized by),-ez\r\npost- (after),mab-,,-ive (having the nature of),-yb\r\nre- (back/again),xae-,,-less (without),-bea\r\nsub- (under),mor-,,-ed (make nouns into adjectives),-hk\r\ntetra- (four),zag-,,"-s, -ing (action of)",-ule\r\ntri- (three),he-,,-ling (smaller version),-ye\r\n"un-, de- (not, down, away from)",num-,,-mancy,-ota\r\n,,,-ment,-unh\r\n,,,-ette,-ety\r\n',
 }
 
 if __name__ == "__main__":

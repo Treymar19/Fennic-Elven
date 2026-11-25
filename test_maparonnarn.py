@@ -175,6 +175,46 @@ finally:
     if _orig is None: os.remove(_stale)
     else: open(_stale, "w", encoding="utf-8").write(_orig)
 check("an old snapshot file next to the app cannot override the built-in data", "old" not in _w and "ley" in _w and len(_w) >= 860, len(_w))
+# ── did-you-mean, the sheet's suffix rules, word joiner, fonts, backup and restore ──
+check("search: did you mean (typo 'horze')", "Did you mean" in m.search("horze", [S]) and "horse" in m.search("horze", [S]), m.search("horze", [S])[:80])
+check("translate: unknown word gets a suggestion", "did you mean: horse" in m.to_fennic("horze", [S]), m.to_fennic("horze", [S]).split("\n")[-1])
+check("fennic -> english: unknown word gets a suggestion", "did you mean" in m.to_english("ehyubr", [S]), m.to_english("ehyubr", [S])[-80:])
+check("variants: happily / goodness", ("happy", "ily") in m.variants("happily") and any(k.startswith("sfx:ness:") for _, k in m.variants("goodness", True)))
+check("dark: -ness (state of being) = -um", first("goodness", [D]) == "### Vrazum", first("goodness", [D]))
+check("dark: rule-built words are labelled, dictionary words are not", "built by a rule from **Vraz** + -um" in m.to_fennic("goodness", [D]) and "built by a rule" not in m.to_fennic("good", [D]) and "built by a rule" not in m.to_fennic("goodness", [S]))
+check("dark: -ly = -eb (the sheet's Final / Finally pattern)", first("goodly", [D]) == "### Vrazeb", first("goodly", [D]))
+def dict_csv(cols):
+    height = 1 + max((len(r) for _, r in cols), default=0)
+    grid = [[] for _ in range(height)]
+    for ci, (_, items) in enumerate(cols):
+        for r in range(height):
+            grid[r] += list(("Common", "Vel'luah") if r == 0 else (items[r - 1] if r - 1 < len(items) else ("", ""))) + ([""] if ci < len(cols) - 1 else [])
+    out = io.StringIO(); csv.writer(out).writerows(grid); return out.getvalue()
+_s2 = m._DB
+m._DB = dict(_s2, **m.parse_dark([("Dictionary", "dict", dict_csv([("Prefixes", []), ("Suffixes", []), ("Verbs", [("To appoint", "aheyek"), ("To teach", "xyzu")]), ("Nouns", [("Bard", "kanuul")])]))]), t=time.time() + 1e6)
+try:
+    got = {w_: first(w_, [D]) for w_ in ("appointment", "bardmancy", "teacher", "barder", "appointing", "appointed", "antibard")}
+    check("dark: the sheet's own derived words (Appointment = aheyekunh, Bardmancy = kanuulota)", got["appointment"] == "### aheyekunh" and got["bardmancy"] == "### kanuulota", got)
+    check("dark: agent -er needs a verb base", got["teacher"] == "### xyzuyr" and got["barder"] == "### barder", got)
+    check("dark: -ing = -ule, -ed on a verb = a’, prefix anti- = uby", got["appointing"] == "### aheyekule" and got["appointed"] == "### a’aheyek" and got["antibard"] == "### ubykanuul", got)
+    check("dark rules are not used in Snow Elf", first("appointment", [S]) == "### appointment", first("appointment", [S]))
+finally:
+    m._DB = _s2
+check("dictionary affix list is built in (offline)", ("-yr", "-ist, -ian, -er, -or (one who)") in d["DA"] and ("uby-", "anti- (against)") in d["DA"] and len(d["DA"]) >= 54, len(d["DA"]))
+check("join: the doc's three examples", (m.marry("soce", "weyu")[0], m.marry("ikurn", "indar")[0], m.marry("fenn", "anorr")[0]) == ("soceyu", "ikurndar", "fenneorr"), (m.marry("soce", "weyu")[0], m.marry("ikurn", "indar")[0], m.marry("fenn", "anorr")[0]))
+check("join: marker form and plain join", m.marry("soce", "weyu")[1] == "soce’yu" and m.marry("ehyu", "bor")[0] == "ehyubor" and m.marry("Ikurn", "indar")[0] == "Ikurndar")
+jw = m.join_words("Ikurn indar")
+check("join tab: result and the doc's warning", jw.startswith("### Ikurndar") and "go very wrong" in jw and "Ikurn = " in jw, jw[:60])
+check("join tab: real line breaks, no stray backslashes", "\n\n- **Ikurn**" in jw and "\\n" not in jw, repr(jw[:50]))
+check("join tab: needs two words", "two or more" in m.join_words("ikurn"))
+check("fonts: the script box has a font list for the glyph blocks", "Noto Sans Armenian" in m.demo.css and "Noto Sans Runic" in m.demo.css and "fonts.googleapis.com" in m.demo.head and "#script-out" in m.demo.css)
+_bk = m.export_mine("A = b\nZorbak = cold\n")
+check("backup: file is written", open(_bk, encoding="utf-8").read() == "A = b\nZorbak = cold\n")
+_txt, _msg = m.restore_mine(_bk)
+check("restore: my words come back and are saved", "Zorbak" in _txt and "Saved" in _msg and "Zorbak" in first("cold", [S, W, D]), _msg)
+_sb = m.export_saved("Valyra says, “Vraz”\n"); _t2, _m2 = m.restore_saved(_sb)
+check("restore: saved lines come back", "Vraz" in _t2 and "Saved" in _m2 and "Vraz" in m.get_saved(), _m2)
+check("restore: no file chosen", "Choose" in m.restore_mine(None)[1] and "Choose" in m.restore_saved(None)[1])
 # importing a downloaded Dictionary CSV (uses the sample dictionary built above, written to a temp folder)
 m.HERE = tempfile.mkdtemp()
 _up = os.path.join(m.HERE, "upload.csv"); open(_up, "w", encoding="utf-8").write(buf.getvalue())
